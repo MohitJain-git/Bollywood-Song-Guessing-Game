@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import google.generativeai as genai
+from google import genai
 import os
 import re
 import json
@@ -40,7 +40,7 @@ if not api_key:
     st.error("⚠️ GEMINI_API_KEY not found in .env file!")
     st.stop()
 
-genai.configure(api_key=api_key)
+client = genai.Client(api_key=api_key)
 
 # 2. DATA FUNCTIONS
 def clean_text(text):
@@ -144,11 +144,11 @@ def get_song_clues(song_name, artist):
     Now, generate the JSON for the Target Song above.
     """
 
-    model = genai.GenerativeModel(MODEL_NAME)
-
     try:
-        # 2. Make the API Call
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+        )
         text = response.text
         
         # 3. Robust JSON Extraction (Finds the first '{' and last '}')

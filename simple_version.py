@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import google.generativeai as genai
+from google import genai
 import os
 import re
 import json
@@ -41,7 +41,7 @@ if not api_key:
     st.error("⚠️ GEMINI_API_KEY not found in .env file!")
     st.stop()
 
-genai.configure(api_key=api_key)
+client = genai.Client(api_key=api_key)
 
 # 2. DATA FUNCTIONS
 def clean_text(text):
@@ -115,9 +115,11 @@ def get_song_clues(song_name, artist):
         "english_translation": "English translation here..."
     }}
     """
-    model = genai.GenerativeModel(MODEL_NAME)
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+        )
         clean_json = response.text.replace('```json', '').replace('```', '').strip()
         return json.loads(clean_json)
     except:

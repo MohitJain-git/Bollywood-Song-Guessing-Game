@@ -28,7 +28,7 @@ It uses:
 Make sure you have Python installed, then install the required packages:
 
 ```bash
-pip install streamlit pandas google-generativeai python-dotenv
+pip install streamlit pandas google-genai python-dotenv
 ```
 
 ## Environment setup
