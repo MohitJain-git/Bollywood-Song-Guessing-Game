@@ -491,12 +491,15 @@ export default function MultiplayerMode() {
               {/* Lyrical Riddles Decoded (Clue 1 & Clue 2 mapped to Original Hindi) */}
               <LyricalDecodedCard card={roomState.currentCard} />
 
-              {/* Synchronized In-App YouTube Player */}
+              {/* Synchronized In-App YouTube & Local Audio Player */}
               <YouTubePlayer
                 videoId={roomState.currentCard.youtube_video_id}
                 searchQuery={roomState.currentCard.youtube_search_query}
                 songName={roomState.currentCard.song_name}
                 movieName={roomState.currentCard.movie_name}
+                artist={roomState.currentCard.artist}
+                spotifyTrackId={roomState.currentCard.spotify_track_id}
+                cardId={roomState.currentCard.id}
               />
 
               {isHost && (

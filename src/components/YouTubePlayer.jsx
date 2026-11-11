@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ExternalLink, Play, AlertCircle, Music, Video, ShieldCheck } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { ExternalLink, Play, Pause, AlertCircle, Music, Video, ShieldCheck, Headphones, Volume2 } from 'lucide-react';
 
 export default function YouTubePlayer({
   videoId,
@@ -7,10 +7,13 @@ export default function YouTubePlayer({
   songName,
   movieName,
   artist,
-  spotifyTrackId
+  spotifyTrackId,
+  cardId
 }) {
-  const [activeTab, setActiveTab] = useState('youtube'); // 'youtube' | 'spotify'
+  const [activeTab, setActiveTab] = useState('youtube'); // 'youtube' | 'local-audio' | 'spotify'
   const [hasError, setHasError] = useState(false);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const audioRef = useRef(null);
 
   // Generate hyper-accurate YouTube search query including the singer/artist
   const primarySinger = artist ? artist.split(',')[0].split(';')[0].trim() : '';
@@ -30,6 +33,20 @@ export default function YouTubePlayer({
     ? `https://open.spotify.com/embed/track/${spotifyTrackId}?utm_source=generator&theme=0`
     : null;
 
+  const toggleLocalAudio = () => {
+    if (!audioRef.current) return;
+    if (isAudioPlaying) {
+      audioRef.current.pause();
+      setIsAudioPlaying(false);
+    } else {
+      audioRef.current.play().then(() => {
+        setIsAudioPlaying(true);
+      }).catch(err => {
+        console.warn('Playback error:', err);
+      });
+    }
+  };
+
   return (
     <div className="media-player-container">
       {/* Player Header with Tab Switcher */}
@@ -43,20 +60,30 @@ export default function YouTubePlayer({
             <span>YouTube Video</span>
           </button>
 
+          {cardId && (
+            <button
+              onClick={() => setActiveTab('local-audio')}
+              className={`source-tab-btn local-tab ${activeTab === 'local-audio' ? 'active' : ''}`}
+            >
+              <Headphones size={15} className="text-amber-400" />
+              <span>In-App Audio Clip</span>
+            </button>
+          )}
+
           {spotifyEmbedUrl && (
             <button
               onClick={() => setActiveTab('spotify')}
               className={`source-tab-btn spotify-tab ${activeTab === 'spotify' ? 'active' : ''}`}
             >
               <Music size={15} />
-              <span>Spotify (Copyright-Safe)</span>
+              <span>Spotify Link</span>
             </button>
           )}
         </div>
 
         {/* Direct Action Link */}
         <div className="player-actions-right">
-          {activeTab === 'youtube' ? (
+          {activeTab === 'youtube' && (
             <a
               href={youtubeSearchUrl}
               target="_blank"
@@ -67,7 +94,8 @@ export default function YouTubePlayer({
               <span>Watch on YouTube</span>
               <ExternalLink size={13} />
             </a>
-          ) : (
+          )}
+          {activeTab === 'spotify' && (
             <a
               href={`https://open.spotify.com/track/${spotifyTrackId}`}
               target="_blank"
@@ -75,7 +103,18 @@ export default function YouTubePlayer({
               className="spotify-external-btn"
               title="Open on Spotify"
             >
-              <span>Play on Spotify</span>
+              <span>Open on Spotify</span>
+              <ExternalLink size={13} />
+            </a>
+          )}
+          {activeTab === 'local-audio' && (
+            <a
+              href={`/api/audio/${cardId}`}
+              download={`${songName.replace(/[^a-zA-Z0-9]/g, '_')}_intro.mp3`}
+              className="youtube-external-btn text-xs"
+              title="Download local audio file"
+            >
+              <span>Download MP3</span>
               <ExternalLink size={13} />
             </a>
           )}
@@ -83,7 +122,7 @@ export default function YouTubePlayer({
       </div>
 
       {/* Main Player Display */}
-      {activeTab === 'youtube' ? (
+      {activeTab === 'youtube' && (
         <div className="youtube-view">
           <div className="youtube-frame-wrapper">
             {!hasError ? (
@@ -103,13 +142,13 @@ export default function YouTubePlayer({
                 <AlertCircle size={32} className="text-amber-400" />
                 <p>This music video has third-party domain restrictions from the record label.</p>
                 <div className="flex gap-2 mt-2">
-                  {spotifyEmbedUrl && (
+                  {cardId && (
                     <button
-                      onClick={() => setActiveTab('spotify')}
-                      className="btn btn-success text-xs py-2 px-3"
+                      onClick={() => setActiveTab('local-audio')}
+                      className="btn btn-warning text-xs py-2 px-3"
                     >
-                      <ShieldCheck size={16} />
-                      <span>Switch to Spotify Player (100% Works)</span>
+                      <Headphones size={16} />
+                      <span>Switch to Local In-App Audio (100% Works)</span>
                     </button>
                   )}
                   <a
@@ -119,7 +158,7 @@ export default function YouTubePlayer({
                     className="btn btn-primary text-xs py-2 px-3"
                   >
                     <Play size={16} />
-                    <span>Watch "{songName}" on YouTube</span>
+                    <span>Watch on YouTube App</span>
                   </a>
                 </div>
               </div>
@@ -127,18 +166,46 @@ export default function YouTubePlayer({
           </div>
           <div className="player-caption-bar">
             <span>🎬 Official YouTube Video for <strong>"{songName}"</strong></span>
-            {spotifyEmbedUrl && (
+            {cardId && (
               <button
-                onClick={() => setActiveTab('spotify')}
+                onClick={() => setActiveTab('local-audio')}
                 className="copyright-switch-hint"
               >
-                Having playback restrictions? Click for Spotify Audio 🟢
+                Having video restrictions? Click for In-App Audio 🎧
               </button>
             )}
           </div>
         </div>
-      ) : (
-        /* SPOTIFY WEB PLAYER (100% COPYRIGHT COMPLIANT) */
+      )}
+
+      {activeTab === 'local-audio' && cardId && (
+        <div className="local-audio-view animate-fade-in p-4 bg-zinc-900/90 rounded-xl border border-amber-500/30 text-center">
+          <audio
+            ref={audioRef}
+            src={`/api/audio/${cardId}`}
+            onEnded={() => setIsAudioPlaying(false)}
+            onPause={() => setIsAudioPlaying(false)}
+            onPlay={() => setIsAudioPlaying(true)}
+          />
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <button
+              onClick={toggleLocalAudio}
+              className="btn btn-primary rounded-full w-14 h-14 flex items-center justify-center shadow-lg shadow-amber-500/20"
+            >
+              {isAudioPlaying ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
+            </button>
+            <div className="text-left">
+              <h4 className="font-bold text-amber-300 text-base">{songName}</h4>
+              <p className="text-xs text-zinc-400">{movieName} • {artist}</p>
+            </div>
+          </div>
+          <p className="text-xs text-zinc-400">
+            ⚡ Stored locally on the server. Zero third-party login or embed restrictions.
+          </p>
+        </div>
+      )}
+
+      {activeTab === 'spotify' && (
         <div className="spotify-view animate-fade-in">
           <div className="spotify-frame-wrapper">
             <iframe
@@ -153,7 +220,7 @@ export default function YouTubePlayer({
             />
           </div>
           <p className="spotify-caption">
-            🟢 Officially licensed Spotify audio stream. 100% free of domain copyright blocks.
+            🟢 Spotify playback link. If your browser restricts embedded preview clips, tap "Open on Spotify" above.
           </p>
         </div>
       )}

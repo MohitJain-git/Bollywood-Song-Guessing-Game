@@ -25,6 +25,13 @@ const {
   generateFallbackCard
 } = require('./geminiService');
 
+const {
+  getClipPath,
+  isClipReady,
+  downloadAudioClip,
+  CLIPS_DIR
+} = require('./audioDownloader');
+
 const roomManager = require('./roomManager');
 
 // Initialize database
@@ -282,6 +289,47 @@ wss.on('connection', (ws) => {
 
   ws.on('close', () => {
     roomManager.handleDisconnect(ws);
+  });
+});
+
+// Serve local lightweight audio clips statically
+app.use('/audio_clips', express.static(CLIPS_DIR));
+
+// Audio stream & on-demand download endpoint for 5s/10s blitz
+app.get('/api/audio/:id', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).send('Invalid card ID');
+
+  const clipPath = getClipPath(id);
+  if (isClipReady(id)) {
+    return res.sendFile(`${id}.mp3`, { root: CLIPS_DIR });
+  }
+
+  // On-demand fetch if not pre-downloaded
+  try {
+    const card = getCardById(id);
+    if (!card) return res.status(404).send('Card not found in database');
+
+    console.log(`[API /api/audio/${id}] Generating audio clip on-demand for "${card.song_name}"...`);
+    await downloadAudioClip(card);
+
+    if (isClipReady(id)) {
+      return res.sendFile(`${id}.mp3`, { root: CLIPS_DIR });
+    }
+    res.status(500).send('Failed to generate audio clip');
+  } catch (err) {
+    console.error(`[API /api/audio/${id}] Error:`, err.message);
+    res.status(500).send(`Audio generation failed: ${err.message}`);
+  }
+});
+
+// Check if audio clip is ready for immediate playback
+app.get('/api/audio/status/:id', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const ready = isClipReady(id);
+  res.json({
+    ready,
+    url: ready ? `/audio_clips/${id}.mp3` : null
   });
 });
 

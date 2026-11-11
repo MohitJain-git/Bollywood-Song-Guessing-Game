@@ -325,7 +325,7 @@ export default function SoloMode({ onOpenSettings }) {
                 </div>
               )}
 
-              {/* In-App Dual Media Player (YouTube + Spotify Copyright-Free) */}
+              {/* In-App Dual Media Player (YouTube + Spotify + Local Audio) */}
               <YouTubePlayer
                 videoId={card.youtube_video_id}
                 searchQuery={card.youtube_search_query}
@@ -333,6 +333,7 @@ export default function SoloMode({ onOpenSettings }) {
                 movieName={card.movie_name}
                 artist={card.artist}
                 spotifyTrackId={card.spotify_track_id}
+                cardId={card.id}
               />
 
               {/* Next Round Action */}

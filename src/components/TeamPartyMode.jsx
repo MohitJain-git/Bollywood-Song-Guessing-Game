@@ -566,7 +566,7 @@ export default function TeamPartyMode() {
                     </div>
                   )}
 
-                  {/* Embedded Dual Media Player (YouTube + Spotify Copyright-Free) */}
+                  {/* Embedded Dual Media Player (YouTube + Spotify + Local Audio) */}
                   <YouTubePlayer
                     videoId={card.youtube_video_id}
                     searchQuery={card.youtube_search_query}
@@ -574,6 +574,7 @@ export default function TeamPartyMode() {
                     movieName={card.movie_name}
                     artist={card.artist}
                     spotifyTrackId={card.spotify_track_id}
+                    cardId={card.id}
                   />
 
                   <div className="next-round-bar">
