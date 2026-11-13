@@ -156,7 +156,11 @@ function initDatabase() {
     let totalImported = 0;
 
     for (const fileName of files) {
-      const fullPath = path.join(BASE_DIR, fileName);
+      let fullPath = path.join(BASE_DIR, fileName);
+      if (!fs.existsSync(fullPath)) {
+        const altPath = path.join(BASE_DIR, 'streamlit_app', fileName);
+        if (fs.existsSync(altPath)) fullPath = altPath;
+      }
       const rows = parseCSV(fullPath);
       for (const row of rows) {
         if (!row.song || !row.song.trim()) continue;
