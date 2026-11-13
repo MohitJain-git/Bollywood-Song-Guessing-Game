@@ -561,6 +561,82 @@ body {
   box-shadow: 0 0 12px rgba(251, 191, 36, 0.25);
 }
 
+/* OPEN CHOICES SECTION UNDER TEXT GUESS */
+.open-choices-section {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(251, 191, 36, 0.25);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.open-choices-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.open-choices-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fbbf24;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.open-choices-toggle {
+  background: transparent;
+  border: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #a1a1aa;
+  cursor: pointer;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
+}
+
+.open-choices-toggle:hover {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+}
+
+/* MULTIPLE CHOICE HINT BUTTON */
+.mc-hint-box {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  justify-content: center;
+}
+
+.btn-hint-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 580px;
+  padding: 0.75rem 1.25rem;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px dashed rgba(251, 191, 36, 0.6);
+  border-radius: var(--radius-md);
+  color: #fbbf24;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-hint-outline:hover {
+  background: rgba(251, 191, 36, 0.18);
+  border-color: #fbbf24;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(251, 191, 36, 0.25);
+}
+
 .reveal-bar {
   display: flex;
   justify-content: center;

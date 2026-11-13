@@ -24,7 +24,8 @@ export default function TeamPartyMode() {
   const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
 
   // Guessing controls for team
-  const [guessStyle, setGuessStyle] = useState('type'); // 'type' | 'options' | 'host'
+  const [guessStyle, setGuessStyle] = useState('type'); // 'type' | 'host'
+  const [usedMultipleChoice, setUsedMultipleChoice] = useState(false); // Multiple Choice as Hint (Halves points)
   const [teamGuessInput, setTeamGuessInput] = useState('');
   const [shuffledOptions, setShuffledOptions] = useState([]);
   const [guessFeedback, setGuessFeedback] = useState(null); // { correct: boolean, message: string }
@@ -54,6 +55,7 @@ export default function TeamPartyMode() {
     setTeamGuessInput('');
     setStealInput('');
     setIsStealPhase(false);
+    setUsedMultipleChoice(false);
     setGuessFeedback(null);
     setShowHostPeek(false);
 
@@ -111,18 +113,23 @@ export default function TeamPartyMode() {
   }, [timerActive, isAnswerRevealed, timeLeft, isStealPhase]);
 
   const calculatePoints = () => {
+    let base = 20;
     switch (currentClueLevel) {
-      case 1: return 100;
-      case 2: return 80;
-      case 3: return 60;
-      case 4: return 40;
-      case 5: return 20;
-      default: return 20;
+      case 1: base = 100; break;
+      case 2: base = 80; break;
+      case 3: base = 60; break;
+      case 4: base = 40; break;
+      case 5: base = 20; break;
+      default: base = 20;
     }
+    if (usedMultipleChoice) {
+      return Math.floor(base / 2); // Halve points if multiple choice hint used
+    }
+    return base;
   };
 
   const calculateStealPoints = () => {
-    return Math.max(30, Math.floor(calculatePoints() * 0.75));
+    return Math.max(20, Math.floor(calculatePoints() * 0.75));
   };
 
   const normalize = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -419,53 +426,74 @@ export default function TeamPartyMode() {
                           onClick={() => setGuessStyle('type')}
                           className={`mode-btn ${guessStyle === 'type' ? 'active' : ''}`}
                         >
-                          Type & Check Answer
-                        </button>
-                        <button
-                          onClick={() => setGuessStyle('options')}
-                          className={`mode-btn ${guessStyle === 'options' ? 'active' : ''}`}
-                        >
-                          Multiple Choice (4 Options)
+                          ⌨️ Team Guess Input
                         </button>
                         <button
                           onClick={() => setGuessStyle('host')}
                           className={`mode-btn ${guessStyle === 'host' ? 'active' : ''}`}
                         >
-                          Verbal Host Controls
+                          🎤 Verbal Host Controls
                         </button>
                       </div>
 
                       {/* Type & Check Answer Mode */}
                       {guessStyle === 'type' && (
-                        <form onSubmit={handleCheckActiveTeamGuess} className="team-guess-form mt-3">
-                          <input
-                            type="text"
-                            value={teamGuessInput}
-                            onChange={(e) => setTeamGuessInput(e.target.value)}
-                            placeholder={`${activeTeam.name}, type your song guess...`}
-                            className="guess-input"
-                            autoFocus
-                          />
-                          <button type="submit" className="btn btn-primary team-check-btn">
-                            <Search size={18} />
-                            <span>Check Answer</span>
-                          </button>
-                        </form>
-                      )}
-
-                      {/* Multiple Choice Mode */}
-                      {guessStyle === 'options' && (
-                        <div className="options-grid mt-3">
-                          {shuffledOptions.map((opt, idx) => (
-                            <button
-                              key={idx}
-                              onClick={() => handleOptionPick(opt)}
-                              className="option-card-btn"
-                            >
-                              <span className="option-number">{idx + 1}</span>
-                              <span className="option-title">{opt}</span>
+                        <div className="team-type-wrapper mt-3">
+                          <form onSubmit={handleCheckActiveTeamGuess} className="team-guess-form">
+                            <input
+                              type="text"
+                              value={teamGuessInput}
+                              onChange={(e) => setTeamGuessInput(e.target.value)}
+                              placeholder={
+                                usedMultipleChoice
+                                  ? `${activeTeam.name}, type or click a choice below (+${calculatePoints()} PTS)...`
+                                  : `${activeTeam.name}, type for FULL POINTS (+${calculatePoints()} PTS)...`
+                              }
+                              className="guess-input"
+                              autoFocus
+                            />
+                            <button type="submit" className="btn btn-primary team-check-btn">
+                              <Search size={18} />
+                              <span>Check ({calculatePoints()} Pts)</span>
                             </button>
-                          ))}
+                          </form>
+
+                          {/* Multiple Choice as Hint (Halves Points) */}
+                          {!usedMultipleChoice ? (
+                            <div className="mc-hint-box text-center mt-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  sounds.playTick();
+                                  setUsedMultipleChoice(true);
+                                }}
+                                className="btn-hint-outline"
+                              >
+                                <Sparkles size={16} />
+                                <span>💡 Need Choices? Reveal 4 Options (Multiple Choice Hint — Half Points: {Math.floor(calculatePoints() / 2)} PTS)</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="open-choices-section animate-scale-up mt-3">
+                              <div className="open-choices-header">
+                                <span className="open-choices-title">
+                                  🎯 Multiple Choice Hint Active — Pick for {activeTeam.name} ({calculatePoints()} PTS):
+                                </span>
+                              </div>
+                              <div className="options-grid">
+                                {shuffledOptions.map((opt, idx) => (
+                                  <button
+                                    key={idx}
+                                    onClick={() => handleOptionPick(opt)}
+                                    className="option-card-btn"
+                                  >
+                                    <span className="option-number">{idx + 1}</span>
+                                    <span className="option-title">{opt}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -526,6 +554,33 @@ export default function TeamPartyMode() {
                           <span>Submit Steal</span>
                         </button>
                       </form>
+
+                      {usedMultipleChoice && (
+                        <div className="options-grid mt-3">
+                          {shuffledOptions.map((opt, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => {
+                                if (opt === card.song_name) {
+                                  handleTeamVictory(1 - activeTeamIdx, calculateStealPoints(), `🔥 INCREDIBLE STEAL! ${rivalTeam.name} stole it!`);
+                                } else {
+                                  sounds.playWrong();
+                                  setIsAnswerRevealed(true);
+                                  setTimerActive(false);
+                                  setGuessFeedback({
+                                    correct: false,
+                                    message: `❌ Wrong steal by ${rivalTeam.name}!`
+                                  });
+                                }
+                              }}
+                              className="option-card-btn border-amber-400/50"
+                            >
+                              <span className="option-number">{idx + 1}</span>
+                              <span className="option-title">{opt}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
 
                       <div className="team-pass-row mt-3">
                         <button

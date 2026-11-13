@@ -1,8 +1,8 @@
 const { db } = require('./database');
 const { downloadAudioClip, isClipReady } = require('./audioDownloader');
 
-async function runBatchDownloader() {
-  console.log('[BatchAudio] Starting batch downloader for all curated Bollywood songs...');
+async function runBatchDownloader(force = true) {
+  console.log(`[BatchAudio] Starting clean batch downloader (force=${force})...`);
   const cards = db.prepare('SELECT id, song_name, movie_name, artist, youtube_video_id, youtube_search_query FROM trivia_cards ORDER BY id ASC').all();
   console.log(`[BatchAudio] Found ${cards.length} cards in database.`);
 
@@ -10,21 +10,21 @@ async function runBatchDownloader() {
   let alreadyReadyCount = 0;
   let errorCount = 0;
 
-  // Concurrency limit
-  const CONCURRENCY = 3;
+  const CONCURRENCY = 4;
   let idx = 0;
 
   async function worker(workerId) {
     while (idx < cards.length) {
-      const card = cards[idx++];
-      if (isClipReady(card.id)) {
+      const currentIdx = idx++;
+      const card = cards[currentIdx];
+      if (!force && isClipReady(card.id)) {
         alreadyReadyCount++;
         continue;
       }
 
       try {
-        console.log(`[Worker ${workerId}] [${idx}/${cards.length}] Downloading: "${card.song_name}" (${card.movie_name})`);
-        await downloadAudioClip(card);
+        console.log(`[Worker ${workerId}] [${currentIdx + 1}/${cards.length}] Processing: "${card.song_name}" (${card.movie_name})`);
+        await downloadAudioClip(card, force);
         downloadedCount++;
       } catch (err) {
         errorCount++;
@@ -41,15 +41,16 @@ async function runBatchDownloader() {
   await Promise.all(workers);
 
   console.log('\n[BatchAudio] ========================================');
-  console.log(`[BatchAudio] Completed!`);
+  console.log(`[BatchAudio] Batch Audio Clean Download Completed!`);
   console.log(`[BatchAudio] Already Ready: ${alreadyReadyCount}`);
-  console.log(`[BatchAudio] Newly Downloaded: ${downloadedCount}`);
+  console.log(`[BatchAudio] Downloaded/Updated: ${downloadedCount}`);
   console.log(`[BatchAudio] Failed/Skipped: ${errorCount}`);
   console.log('[BatchAudio] ========================================\n');
 }
 
 if (require.main === module) {
-  runBatchDownloader().catch(err => console.error('[BatchAudio] Fatal error:', err));
+  const force = process.argv.includes('--force') || true;
+  runBatchDownloader(force).catch(err => console.error('[BatchAudio] Fatal error:', err));
 }
 
 module.exports = { runBatchDownloader };

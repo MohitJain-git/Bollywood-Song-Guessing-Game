@@ -17,7 +17,7 @@ export default function SoloMode({ onOpenSettings }) {
   const [userGuess, setUserGuess] = useState('');
   const [guessFeedback, setGuessFeedback] = useState(null); // { correct: boolean, message: string }
   const [shuffledOptions, setShuffledOptions] = useState([]);
-  const [modeType, setModeType] = useState('multiple-choice'); // 'multiple-choice' or 'type-guess'
+  const [usedMultipleChoice, setUsedMultipleChoice] = useState(false); // Multiple Choice as Hint (Halves points)
 
   // Score state
   const [score, setScore] = useState(0);
@@ -32,6 +32,7 @@ export default function SoloMode({ onOpenSettings }) {
     setCurrentClueLevel(1);
     setUserGuess('');
     setGuessFeedback(null);
+    setUsedMultipleChoice(false);
 
     try {
       let url = `/api/trivia/next?era=${selectedEra}`;
@@ -74,14 +75,19 @@ export default function SoloMode({ onOpenSettings }) {
   };
 
   const calculatePoints = () => {
+    let base = 20;
     switch (currentClueLevel) {
-      case 1: return 100;
-      case 2: return 80;
-      case 3: return 60;
-      case 4: return 40;
-      case 5: return 20;
-      default: return 20;
+      case 1: base = 100; break;
+      case 2: base = 80; break;
+      case 3: base = 60; break;
+      case 4: base = 40; break;
+      case 5: base = 20; break;
+      default: base = 20;
     }
+    if (usedMultipleChoice) {
+      return Math.floor(base / 2);
+    }
+    return base;
   };
 
   const handleCorrectGuess = (pointsEarned) => {
@@ -242,51 +248,63 @@ export default function SoloMode({ onOpenSettings }) {
             </div>
           )}
 
-          {/* Interactive Guessing Controls (When NOT Revealed) */}
+          {/* Interactive Guessing Controls: Type for Full Points OR Reveal Choices as Hint for Half Points */}
           {!isAnswerRevealed ? (
             <div className="guess-section animate-fade-in">
-              <div className="guess-mode-switcher">
-                <button
-                  onClick={() => setModeType('multiple-choice')}
-                  className={`mode-btn ${modeType === 'multiple-choice' ? 'active' : ''}`}
-                >
-                  Multiple Choice
+              <form onSubmit={handleTextGuessSubmit} className="text-guess-form">
+                <input
+                  type="text"
+                  value={userGuess}
+                  onChange={(e) => setUserGuess(e.target.value)}
+                  placeholder={
+                    usedMultipleChoice
+                      ? `Type song name or pick from choices below (+${calculatePoints()} PTS)...`
+                      : `Type song name for FULL POINTS (+${calculatePoints()} PTS)...`
+                  }
+                  className="guess-input"
+                  autoFocus
+                />
+                <button type="submit" className="btn btn-primary guess-submit-btn">
+                  Submit ({calculatePoints()} Pts)
                 </button>
-                <button
-                  onClick={() => setModeType('type-guess')}
-                  className={`mode-btn ${modeType === 'type-guess' ? 'active' : ''}`}
-                >
-                  Type Your Guess
-                </button>
-              </div>
+              </form>
 
-              {modeType === 'multiple-choice' ? (
-                <div className="options-grid">
-                  {shuffledOptions.map((option, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleOptionClick(option)}
-                      className="option-card-btn"
-                    >
-                      <span className="option-number">{idx + 1}</span>
-                      <span className="option-title">{option}</span>
-                    </button>
-                  ))}
+              {/* Multiple Choice as Hint (Halves Points) */}
+              {!usedMultipleChoice ? (
+                <div className="mc-hint-box text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sounds.playTick();
+                      setUsedMultipleChoice(true);
+                    }}
+                    className="btn-hint-outline"
+                  >
+                    <Sparkles size={16} />
+                    <span>💡 Need a hint? Reveal 4 Choices (Half Points: {Math.floor(calculatePoints() / 2)} PTS)</span>
+                  </button>
                 </div>
               ) : (
-                <form onSubmit={handleTextGuessSubmit} className="text-guess-form">
-                  <input
-                    type="text"
-                    value={userGuess}
-                    onChange={(e) => setUserGuess(e.target.value)}
-                    placeholder="Type song name (e.g. Kal Ho Naa Ho, Tum Hi Ho)..."
-                    className="guess-input"
-                    autoFocus
-                  />
-                  <button type="submit" className="btn btn-primary guess-submit-btn">
-                    Submit Guess
-                  </button>
-                </form>
+                <div className="open-choices-section animate-scale-up mt-3">
+                  <div className="open-choices-header">
+                    <span className="open-choices-title">
+                      🎯 Multiple Choice Hint Active — Pick your song for {calculatePoints()} PTS:
+                    </span>
+                  </div>
+
+                  <div className="options-grid">
+                    {shuffledOptions.map((option, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleOptionClick(option)}
+                        className="option-card-btn"
+                      >
+                        <span className="option-number">{idx + 1}</span>
+                        <span className="option-title">{option}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
 
               {/* Reveal answer button */}

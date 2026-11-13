@@ -2,11 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import {
   Play, Pause, RotateCcw, Volume2, Sparkles, CheckCircle2,
-  XCircle, ArrowRight, Trophy, Flame, Music, Film, Clock, HelpCircle,
-  VolumeX, AlertCircle, Headphones
+  XCircle, ArrowRight, Trophy, Flame, Music, Film, Clock,
+  Headphones, Disc, Mic2, Calendar
 } from 'lucide-react';
 import YouTubePlayer from './YouTubePlayer';
-import LyricalDecodedCard from './LyricalDecodedCard';
 import { sounds } from './SoundEffects';
 
 export default function AudioBlitzMode() {
@@ -21,19 +20,17 @@ export default function AudioBlitzMode() {
   const [currentTime, setCurrentTime] = useState(0);
   const [hasPlayed5s, setHasPlayed5s] = useState(false);
   const [hasUnlocked10s, setHasUnlocked10s] = useState(false);
-  const [revealedMovieHint, setRevealedMovieHint] = useState(false);
   const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
 
   // Audio element states
   const [audioReady, setAudioReady] = useState(false);
-  const [audioError, setAudioError] = useState(null);
   const audioRef = useRef(null);
 
   // Guessing
   const [userGuess, setUserGuess] = useState('');
   const [shuffledOptions, setShuffledOptions] = useState([]);
   const [guessFeedback, setGuessFeedback] = useState(null);
-  const [modeType, setModeType] = useState('multiple-choice'); // 'multiple-choice' | 'type-guess'
+  const [usedMultipleChoice, setUsedMultipleChoice] = useState(false); // Multiple Choice as Hint (Halves points)
 
   // Score
   const [score, setScore] = useState(0);
@@ -58,11 +55,10 @@ export default function AudioBlitzMode() {
     setCurrentTime(0);
     setHasPlayed5s(false);
     setHasUnlocked10s(false);
-    setRevealedMovieHint(false);
     setUserGuess('');
     setGuessFeedback(null);
+    setUsedMultipleChoice(false);
     setAudioReady(false);
-    setAudioError(null);
 
     try {
       let url = `/api/trivia/next?era=${playlistEra}`;
@@ -77,6 +73,7 @@ export default function AudioBlitzMode() {
           data.card.song_name,
           ...(Array.isArray(data.card.distractors) ? data.card.distractors : [])
         ];
+        // Shuffle options
         for (let i = options.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [options[i], options[j]] = [options[j], options[i]];
@@ -117,12 +114,6 @@ export default function AudioBlitzMode() {
 
   const handleAudioCanPlay = () => {
     setAudioReady(true);
-    setAudioError(null);
-  };
-
-  const handleAudioError = (e) => {
-    console.warn('[AudioBlitz] Local clip loading error:', e);
-    // Don't crash; the on-demand generator will retry
   };
 
   // Play audio from 0:00 up to clipSeconds
@@ -162,9 +153,11 @@ export default function AudioBlitzMode() {
   };
 
   const calculatePoints = () => {
-    if (revealedMovieHint) return 25;
-    if (hasUnlocked10s || clipSeconds === 10) return 50; // 10s is half points!
-    return 100; // 5s is full 100 points!
+    let base = (hasUnlocked10s || clipSeconds === 10) ? 50 : 100;
+    if (usedMultipleChoice) {
+      return Math.floor(base / 2); // 50 or 25 pts
+    }
+    return base;
   };
 
   const handleCorrectGuess = () => {
@@ -180,7 +173,7 @@ export default function AudioBlitzMode() {
 
     setGuessFeedback({
       correct: true,
-      message: `🎉 Spot On! You identified "${card.song_name}" in ${clipSeconds}s! (+${points} PTS)`
+      message: `🎉 Spot On! You recognized "${card.song_name}" in ${clipSeconds}s! (+${points} PTS)`
     });
     setIsAnswerRevealed(true);
 
@@ -198,7 +191,7 @@ export default function AudioBlitzMode() {
     setStreak(0);
     setGuessFeedback({
       correct: false,
-      message: `❌ Not quite! Listen again or unlock 5 more seconds (0:00 - 0:10)!`
+      message: `❌ Not quite! Listen again or hear 5 more seconds (0:00 - 0:10)!`
     });
   };
 
@@ -249,10 +242,10 @@ export default function AudioBlitzMode() {
         {[
           { id: 'all', label: '🔥 All-Time Hits (210 Songs)' },
           { id: '2000s', label: '🎧 2000s Nostalgia' },
-          { id: '2010s', label: '✨ 2010s Chartbusters' },
-          { id: '2020s', label: '🚀 2020s Reels Trends' },
+          { id: '2010s', label: '✨ 2010s Romance & Pop' },
+          { id: '2020s', label: '🚀 2020s Reels & Trends' },
           { id: '90s', label: '📼 90s Golden Era' },
-          { id: 'Classics', label: '📻 Evergreen 70s-80s' }
+          { id: 'Classics', label: '📻 Evergreen Legends' }
         ].map((tab) => (
           <button
             key={tab.id}
@@ -283,7 +276,7 @@ export default function AudioBlitzMode() {
 
       {!loading && card && (
         <div className="blitz-play-area">
-          {/* NATIVE HTML5 AUDIO ELEMENT (100% RELIABLE LOCAL STORAGE STREAMING) */}
+          {/* NATIVE HTML5 AUDIO ELEMENT (CLEAN LOCAL STORAGE STREAMING) */}
           <audio
             ref={audioRef}
             src={`/api/audio/${card.id}`}
@@ -291,7 +284,6 @@ export default function AudioBlitzMode() {
             onTimeUpdate={handleTimeUpdate}
             onCanPlay={handleAudioCanPlay}
             onEnded={() => setIsPlayingClip(false)}
-            onError={handleAudioError}
           />
 
           {/* MYSTERY AUDIO STATION (WHEN NOT REVEALED) */}
@@ -300,10 +292,15 @@ export default function AudioBlitzMode() {
               <div className="mystery-header">
                 <span className="mystery-badge">
                   <Headphones size={14} className="text-amber-400" />
-                  <span>5-Second Audio Challenge (Local Audio Engine)</span>
+                  <span>5-Second Audio Challenge</span>
                 </span>
                 <span className="mystery-pts">
                   Potential: <strong>+{calculatePoints()} PTS</strong>
+                  {usedMultipleChoice ? (
+                    <span className="ml-2 text-xs text-amber-400 font-bold">(Half Pts — Hint Used)</span>
+                  ) : (
+                    <span className="ml-2 text-xs text-emerald-400 font-bold">(Full Pts)</span>
+                  )}
                 </span>
               </div>
 
@@ -345,7 +342,7 @@ export default function AudioBlitzMode() {
                   ) : (
                     <span className="idle-state-tag">
                       {hasPlayed5s
-                        ? `Paused at ${currentTime.toFixed(1)}s. Click Replay or Unlock 5 More Seconds!`
+                        ? `Paused at ${currentTime.toFixed(1)}s. Click Replay or Hear 5 More Seconds!`
                         : `Click Play to start the first 5 seconds of the song!`}
                     </span>
                   )}
@@ -395,29 +392,6 @@ export default function AudioBlitzMode() {
                 )}
               </div>
 
-              {/* Optional Clue Reveal for 25 Pts */}
-              {!revealedMovieHint ? (
-                <div className="text-center mt-3">
-                  <button
-                    onClick={() => {
-                      sounds.playTick();
-                      setRevealedMovieHint(true);
-                    }}
-                    className="btn btn-ghost text-xs"
-                  >
-                    <HelpCircle size={14} />
-                    <span>Need Help? Reveal Movie & Era Clue (25 Pts)</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="movie-hint-box animate-pop mt-3">
-                  <Film size={16} className="text-purple-400" />
-                  <span>
-                    🎬 Movie Clue: <strong>{card.movie_name}</strong> ({card.release_year}) • <em>{card.era}</em>
-                  </span>
-                </div>
-              )}
-
               {/* Feedback Alert */}
               {guessFeedback && (
                 <div className={`feedback-alert ${guessFeedback.correct ? 'feedback-success' : 'feedback-error'} animate-pop mt-3`}>
@@ -426,50 +400,62 @@ export default function AudioBlitzMode() {
                 </div>
               )}
 
-              {/* Guessing Controls */}
+              {/* Guessing Controls: Type for Full Points OR Reveal Choices as Hint for Half Points */}
               <div className="guess-section mt-4">
-                <div className="guess-mode-switcher">
-                  <button
-                    onClick={() => setModeType('multiple-choice')}
-                    className={`mode-btn ${modeType === 'multiple-choice' ? 'active' : ''}`}
-                  >
-                    Multiple Choice (4 Songs)
+                <form onSubmit={handleTextSubmit} className="text-guess-form">
+                  <input
+                    type="text"
+                    value={userGuess}
+                    onChange={(e) => setUserGuess(e.target.value)}
+                    placeholder={
+                      usedMultipleChoice
+                        ? `Type song name or pick from choices below (+${calculatePoints()} PTS)...`
+                        : `Type song name for FULL POINTS (+${calculatePoints()} PTS)...`
+                    }
+                    className="guess-input"
+                    autoFocus
+                  />
+                  <button type="submit" className="btn btn-primary guess-submit-btn">
+                    Submit ({calculatePoints()} Pts)
                   </button>
-                  <button
-                    onClick={() => setModeType('type-guess')}
-                    className={`mode-btn ${modeType === 'type-guess' ? 'active' : ''}`}
-                  >
-                    Type Song Name
-                  </button>
-                </div>
+                </form>
 
-                {modeType === 'multiple-choice' ? (
-                  <div className="options-grid">
-                    {shuffledOptions.map((opt, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => handleOptionClick(opt)}
-                        className="option-card-btn"
-                      >
-                        <span className="option-number">{idx + 1}</span>
-                        <span className="option-title">{opt}</span>
-                      </button>
-                    ))}
+                {/* Multiple Choice as Hint (Halves Points) */}
+                {!usedMultipleChoice ? (
+                  <div className="mc-hint-box text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sounds.playTick();
+                        setUsedMultipleChoice(true);
+                      }}
+                      className="btn-hint-outline"
+                    >
+                      <Sparkles size={16} />
+                      <span>💡 Need a hint? Reveal 4 Choices (Half Points: {Math.floor(calculatePoints() / 2)} PTS)</span>
+                    </button>
                   </div>
                 ) : (
-                  <form onSubmit={handleTextSubmit} className="text-guess-form">
-                    <input
-                      type="text"
-                      value={userGuess}
-                      onChange={(e) => setUserGuess(e.target.value)}
-                      placeholder="Type the Bollywood song name..."
-                      className="guess-input"
-                      autoFocus
-                    />
-                    <button type="submit" className="btn btn-primary guess-submit-btn">
-                      Submit Guess
-                    </button>
-                  </form>
+                  <div className="open-choices-section animate-scale-up mt-3">
+                    <div className="open-choices-header">
+                      <span className="open-choices-title">
+                        🎯 Multiple Choice Hint Active — Pick your song for {calculatePoints()} PTS:
+                      </span>
+                    </div>
+
+                    <div className="options-grid">
+                      {shuffledOptions.map((opt, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => handleOptionClick(opt)}
+                          className="option-card-btn"
+                        >
+                          <span className="option-number">{idx + 1}</span>
+                          <span className="option-title">{opt}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
 
                 <div className="reveal-bar">
@@ -488,32 +474,31 @@ export default function AudioBlitzMode() {
               </div>
             </div>
           ) : (
-            /* REVEALED SONG CARD WITH FULL PLAYERS & DEEP TRIVIA */
+            /* REVEALED SONG CARD WITH PURE SONG DETAILS & FULL PLAYERS */
             <div className="answer-card-revealed animate-scale-up">
               <div className="answer-header">
-                <div className="song-badge">🎉 5-Sec Audio Riddle Solved!</div>
+                <div className="song-badge">🎉 5-Sec Audio Challenge Solved!</div>
                 <h2 className="song-title-highlight">{card.song_name}</h2>
                 <div className="movie-details">
-                  <span>🎬 <strong>{card.movie_name}</strong></span>
+                  <span><Film size={14} className="inline mr-1 text-purple-400" /><strong>{card.movie_name}</strong></span>
                   <span>•</span>
-                  <span>🎤 <strong>{card.artist}</strong></span>
+                  <span><Mic2 size={14} className="inline mr-1 text-amber-400" /><strong>{card.artist}</strong></span>
                   <span>•</span>
-                  <span>🗓️ <strong>{card.release_year}</strong></span>
+                  <span><Calendar size={14} className="inline mr-1 text-blue-400" /><strong>{card.release_year}</strong></span>
+                  <span>•</span>
+                  <span><Disc size={14} className="inline mr-1 text-rose-400" /><em>{card.era}</em></span>
                 </div>
               </div>
 
-              {/* Lyrical Riddles Decoded (Clue 1 & Clue 2 with 1:1 Hinglish Lyrics) */}
-              <LyricalDecodedCard card={card} />
-
               {/* Deep Trivia Fun Fact */}
               {card.fun_fact && (
-                <div className="trivia-fact-box mt-3">
+                <div className="trivia-fact-box mt-3 mb-4">
                   <span className="fact-badge">✨ Bollywood Trivia</span>
                   <p>{card.fun_fact}</p>
                 </div>
               )}
 
-              {/* Full In-App Media Player (YouTube Official Video) */}
+              {/* Full In-App Media Player (YouTube Official Video + Audio Preview) */}
               <YouTubePlayer
                 videoId={card.youtube_video_id}
                 searchQuery={card.youtube_search_query}
