@@ -276,14 +276,20 @@ export default function AudioBlitzMode() {
 
       {!loading && card && (
         <div className="blitz-play-area">
-          {/* NATIVE HTML5 AUDIO ELEMENT (CLEAN LOCAL STORAGE STREAMING) */}
+          {/* NATIVE HTML5 AUDIO ELEMENT (CLEAN CDN & STORAGE STREAMING) */}
           <audio
             ref={audioRef}
-            src={`/api/audio/${card.id}`}
+            src={`/audio_clips/${card.id}.mp3`}
             preload="auto"
             onTimeUpdate={handleTimeUpdate}
             onCanPlay={handleAudioCanPlay}
             onEnded={() => setIsPlayingClip(false)}
+            onError={(e) => {
+              if (!e.target.dataset.retried) {
+                e.target.dataset.retried = 'true';
+                e.target.src = `/api/audio/${card.id}`;
+              }
+            }}
           />
 
           {/* MYSTERY AUDIO STATION (WHEN NOT REVEALED) */}

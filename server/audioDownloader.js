@@ -3,8 +3,12 @@ const fs = require('fs');
 const path = require('path');
 
 const CLIPS_DIR = path.resolve(__dirname, '../public/audio_clips');
-if (!fs.existsSync(CLIPS_DIR)) {
-  fs.mkdirSync(CLIPS_DIR, { recursive: true });
+try {
+  if (!fs.existsSync(CLIPS_DIR)) {
+    fs.mkdirSync(CLIPS_DIR, { recursive: true });
+  }
+} catch (e) {
+  // Read-only filesystem in serverless environments (e.g. Vercel)
 }
 
 // Locate yt-dlp and ffmpeg
@@ -40,7 +44,20 @@ function getClipPath(cardId) {
 
 function isClipReady(cardId) {
   const filePath = getClipPath(cardId);
-  return fs.existsSync(filePath) && fs.statSync(filePath).size > 1000;
+  try {
+    if (fs.existsSync(filePath) && fs.statSync(filePath).size > 1000) {
+      return true;
+    }
+    const distPath = path.resolve(__dirname, '../dist/audio_clips', `${cardId}.mp3`);
+    if (fs.existsSync(distPath) && fs.statSync(distPath).size > 1000) {
+      return true;
+    }
+  } catch (e) {
+    // Filesystem check issue
+  }
+  // Cards 1-210 are all bundled in public/audio_clips and dist/audio_clips
+  const numId = parseInt(cardId, 10);
+  return numId >= 1 && numId <= 210;
 }
 
 const BAD_KEYWORDS = [

@@ -39,12 +39,20 @@ An AI-powered Bollywood music trivia web application built with **React**, **Nod
 
 ### 📦 Option 1: Modern Full-Stack Web Application (Recommended)
 
-#### 1. Install Dependencies
+#### 🌐 Deploying to Vercel (1-Click)
+This project is configured out of the box for **Vercel** with zero database setup required:
+1. Import your GitHub repository to [Vercel](https://vercel.com).
+2. Vercel automatically detects `vercel.json` (`npm run build`, `dist` output, and Serverless Functions in `api/`).
+3. *(Optional)* Add `GEMINI_API_KEY` in Environment Variables.
+4. Click **Deploy**! See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) for complete details.
+
+#### 💻 Local Setup
+1. **Install Dependencies**
 ```bash
 npm install
 ```
 
-#### 2. Build Frontend & Start Server
+2. **Build Frontend & Start Server**
 ```bash
 npm run build
 npm start

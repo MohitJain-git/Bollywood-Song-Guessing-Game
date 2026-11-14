@@ -44,6 +44,16 @@ const wss = new WebSocketServer({ server });
 app.use(cors());
 app.use(express.json());
 
+// Normalize URLs when running as a Vercel Serverless Function
+app.use((req, res, next) => {
+  if (req.headers['x-matched-path']) {
+    req.url = req.headers['x-matched-path'];
+  } else if ((req.url === '/api' || req.url === '/api/index.js' || req.url === '/index.js') && req.originalUrl) {
+    req.url = req.originalUrl;
+  }
+  next();
+});
+
 // Background Replenishment helper
 let isReplenishing = false;
 async function replenishCardsIfNeeded(targetEra = 'all') {
@@ -301,8 +311,17 @@ app.get('/api/audio/:id', async (req, res) => {
   if (isNaN(id)) return res.status(400).send('Invalid card ID');
 
   const clipPath = getClipPath(id);
-  if (isClipReady(id)) {
+  if (fs.existsSync(clipPath)) {
     return res.sendFile(`${id}.mp3`, { root: CLIPS_DIR });
+  }
+
+  const distClip = path.resolve(__dirname, '../dist/audio_clips', `${id}.mp3`);
+  if (fs.existsSync(distClip)) {
+    return res.sendFile(`${id}.mp3`, { root: path.resolve(__dirname, '../dist/audio_clips') });
+  }
+
+  if (isClipReady(id)) {
+    return res.redirect(302, `/audio_clips/${id}.mp3`);
   }
 
   // On-demand fetch if not pre-downloaded
@@ -314,7 +333,7 @@ app.get('/api/audio/:id', async (req, res) => {
     await downloadAudioClip(card);
 
     if (isClipReady(id)) {
-      return res.sendFile(`${id}.mp3`, { root: CLIPS_DIR });
+      return res.redirect(302, `/audio_clips/${id}.mp3`);
     }
     res.status(500).send('Failed to generate audio clip');
   } catch (err) {
@@ -342,8 +361,13 @@ if (fs.existsSync(distPath)) {
   });
 }
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`🎬 Bollywood Song Trivia Server running on http://localhost:${PORT}`);
-  console.log(`📡 WebSocket ready on ws://localhost:${PORT}`);
-});
+// Only start HTTP listener when not running inside Vercel serverless environment
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 3000;
+  server.listen(PORT, () => {
+    console.log(`🎬 Bollywood Song Trivia Server running on http://localhost:${PORT}`);
+    console.log(`📡 WebSocket ready on ws://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;
