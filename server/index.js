@@ -33,10 +33,20 @@ const {
   CLIPS_DIR
 } = require('./audioDownloader');
 
+const {
+  syncDailyLatestSongs,
+  ensureDailyLatestSongs,
+  fetchItunesPreviewUrl,
+  getLastDailySyncInfo
+} = require('./dailySongsService');
+
 const roomManager = require('./roomManager');
 
-// Initialize database
+// Initialize database and trigger daily 10 latest songs sync
 initDatabase();
+ensureDailyLatestSongs().catch((err) => {
+  console.warn('[DailySync] Initial daily sync check warning:', err.message);
+});
 
 const app = express();
 const server = http.createServer(app);
@@ -97,7 +107,13 @@ app.get('/api/trivia/next', async (req, res) => {
   try {
     const era = req.query.era || 'all';
     const excludeId = req.query.excludeId ? parseInt(req.query.excludeId, 10) : null;
-    
+
+    if (era === 'latest') {
+      await ensureDailyLatestSongs();
+    } else {
+      ensureDailyLatestSongs().catch(() => {});
+    }
+
     let card = getTriviaCard({ era, excludeId });
 
     // If completely empty, generate one immediately
@@ -190,11 +206,43 @@ app.post('/api/trivia/generate', async (req, res) => {
   }
 });
 
+// Sync 10 Daily Latest Bollywood songs for both games (Solo/Team & 5s Audio Blitz)
+app.post('/api/trivia/daily-sync', async (req, res) => {
+  try {
+    const count = Math.min(Math.max(parseInt(req.body?.count, 10) || 10, 1), 15);
+    const result = await syncDailyLatestSongs(count);
+    res.json({
+      ...result,
+      stats: getDatabaseStats()
+    });
+  } catch (err) {
+    console.error('[API] /api/trivia/daily-sync error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Vercel Cron / automated daily 10 latest songs endpoint
+app.get('/api/cron/daily-songs', async (req, res) => {
+  try {
+    const result = await syncDailyLatestSongs(10);
+    res.json({
+      ...result,
+      stats: getDatabaseStats()
+    });
+  } catch (err) {
+    console.error('[API] /api/cron/daily-songs error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Database stats
 app.get('/api/stats', (req, res) => {
   try {
     const stats = getDatabaseStats();
-    res.json(stats);
+    res.json({
+      ...stats,
+      dailySync: getLastDailySyncInfo()
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -341,10 +389,21 @@ app.get('/api/audio/:id', async (req, res) => {
     return res.redirect(302, `/audio_clips/${id}.mp3`);
   }
 
-  // On-demand fetch if not pre-downloaded
+  // On-demand fetch or Apple Music preview stream fallback if not pre-downloaded
   try {
     const card = getCardById(id);
     if (!card) return res.status(404).send('Card not found in database');
+
+    if (card.preview_url) {
+      return res.redirect(302, card.preview_url);
+    }
+
+    // Attempt live iTunes India preview resolution first (works on Vercel serverless!)
+    const livePreview = await fetchItunesPreviewUrl(card.song_name, card.movie_name);
+    if (livePreview) {
+      card.preview_url = livePreview;
+      return res.redirect(302, livePreview);
+    }
 
     console.log(`[API /api/audio/${id}] Generating audio clip on-demand for "${card.song_name}"...`);
     await downloadAudioClip(card);

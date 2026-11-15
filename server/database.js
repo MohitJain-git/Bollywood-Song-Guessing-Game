@@ -157,6 +157,9 @@ function initDatabase() {
         youtube_video_id TEXT,
         youtube_search_query TEXT,
         fun_fact TEXT,
+        preview_url TEXT DEFAULT '',
+        is_daily_latest INTEGER DEFAULT 0,
+        added_date TEXT DEFAULT '',
         times_played INTEGER DEFAULT 0,
         times_correct INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -183,6 +186,20 @@ function initDatabase() {
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // Ensure new columns exist on existing trivia_cards table
+    const alterColumns = [
+      "ALTER TABLE trivia_cards ADD COLUMN preview_url TEXT DEFAULT ''",
+      "ALTER TABLE trivia_cards ADD COLUMN is_daily_latest INTEGER DEFAULT 0",
+      "ALTER TABLE trivia_cards ADD COLUMN added_date TEXT DEFAULT ''"
+    ];
+    for (const stmt of alterColumns) {
+      try {
+        db.exec(stmt);
+      } catch (e) {
+        // Column already exists
+      }
+    }
 
     // 2. Check if songs table has been populated from CSVs
     const songCount = db.prepare('SELECT COUNT(*) as count FROM songs').get().count;
@@ -298,7 +315,9 @@ function getTriviaCard(filter = {}) {
       let sql = 'SELECT * FROM trivia_cards WHERE 1=1';
       const params = [];
 
-      if (era && era !== 'all') {
+      if (era === 'latest') {
+        sql += ' AND (is_daily_latest = 1 OR release_year >= 2024)';
+      } else if (era && era !== 'all') {
         sql += ' AND era = ?';
         params.push(era);
       }
@@ -308,11 +327,11 @@ function getTriviaCard(filter = {}) {
       }
 
       // Prioritize unplayed cards first
-      const unplayedSql = `${sql} AND times_played = 0 ORDER BY RANDOM() LIMIT 1`;
+      const unplayedSql = `${sql} AND times_played = 0 ORDER BY is_daily_latest DESC, RANDOM() LIMIT 1`;
       let card = db.prepare(unplayedSql).get(...params);
 
       if (!card) {
-        const randomSql = `${sql} ORDER BY times_played ASC, RANDOM() LIMIT 1`;
+        const randomSql = `${sql} ORDER BY times_played ASC, is_daily_latest DESC, RANDOM() LIMIT 1`;
         card = db.prepare(randomSql).get(...params);
       }
 
@@ -332,7 +351,11 @@ function getTriviaCard(filter = {}) {
 
   // In-Memory Fallback (Guaranteed to return a card on Vercel)
   let pool = inMemoryCards;
-  if (era && era !== 'all') {
+  if (era === 'latest') {
+    pool = pool.filter(c => c.is_daily_latest || (c.release_year && c.release_year >= 2024));
+    if (pool.length === 0) pool = inMemoryCards.filter(c => c.era === '2020s');
+    if (pool.length === 0) pool = inMemoryCards;
+  } else if (era && era !== 'all') {
     pool = pool.filter(c => c.era === era);
     if (pool.length === 0) pool = inMemoryCards;
   }
@@ -401,6 +424,8 @@ function recordCardPlay(id, isCorrect = false) {
 }
 
 function insertTriviaCard(card) {
+  let assignedId = null;
+
   if (db && !useMemoryFallback) {
     try {
       const stmt = db.prepare(`
@@ -408,16 +433,17 @@ function insertTriviaCard(card) {
           song_name, movie_name, artist, era, release_year,
           english_riddle_1, english_riddle_2, hinglish_lyrics_1, hinglish_lyrics_2,
           actor_visual_clue, music_director_clue, distractors,
-          youtube_video_id, youtube_search_query, fun_fact
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          youtube_video_id, youtube_search_query, fun_fact,
+          preview_url, is_daily_latest, added_date
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       const result = stmt.run(
         card.song_name,
         card.movie_name,
         card.artist,
-        card.era || '2000s',
-        card.release_year || 2005,
+        card.era || '2020s',
+        card.release_year || 2024,
         card.english_riddle_1,
         card.english_riddle_2 || '',
         card.hinglish_lyrics_1,
@@ -427,25 +453,45 @@ function insertTriviaCard(card) {
         JSON.stringify(card.distractors || []),
         card.youtube_video_id || '',
         card.youtube_search_query || `${card.song_name} ${card.movie_name} official song`,
-        card.fun_fact || ''
+        card.fun_fact || '',
+        card.preview_url || '',
+        card.is_daily_latest ? 1 : 0,
+        card.added_date || new Date().toISOString().slice(0, 10)
       );
 
-      return result.lastInsertRowid;
+      assignedId = Number(result.lastInsertRowid);
     } catch (err) {
       console.warn('[DB] insertTriviaCard SQLite failed, adding to memory catalog:', err.message);
     }
   }
 
-  const newId = inMemoryCards.length + 1000;
+  const newId = assignedId || (inMemoryCards.length + 1);
   const newCard = {
     ...card,
     id: newId,
+    preview_url: card.preview_url || '',
+    is_daily_latest: Boolean(card.is_daily_latest),
+    added_date: card.added_date || new Date().toISOString().slice(0, 10),
     times_played: 0,
     times_correct: 0,
     distractors: Array.isArray(card.distractors) ? card.distractors : []
   };
-  inMemoryCards.push(newCard);
+  if (!inMemoryCards.some(c => c.id === newId)) {
+    inMemoryCards.push(newCard);
+  }
   return newId;
+}
+
+function getAllSongNames() {
+  if (db && !useMemoryFallback) {
+    try {
+      const rows = db.prepare('SELECT song_name FROM trivia_cards').all();
+      return rows.map(r => r.song_name);
+    } catch (err) {
+      console.warn('[DB] getAllSongNames SQLite failed:', err.message);
+    }
+  }
+  return inMemoryCards.map(c => c.song_name);
 }
 
 function getCandidateSongForGeneration(era) {
@@ -482,11 +528,13 @@ function getDatabaseStats() {
       const totalSongs = db.prepare('SELECT COUNT(*) as c FROM songs').get().c;
       const totalCards = db.prepare('SELECT COUNT(*) as c FROM trivia_cards').get().c;
       const unplayedCards = db.prepare('SELECT COUNT(*) as c FROM trivia_cards WHERE times_played = 0').get().c;
+      const dailyLatestCount = db.prepare('SELECT COUNT(*) as c FROM trivia_cards WHERE is_daily_latest = 1').get().c;
       const eras = db.prepare('SELECT era, COUNT(*) as count FROM trivia_cards GROUP BY era').all();
       return {
         totalSongs,
         totalCards,
         unplayedCards,
+        dailyLatestCount,
         eras
       };
     } catch (err) {
@@ -504,6 +552,7 @@ function getDatabaseStats() {
     totalSongs: 1243,
     totalCards: inMemoryCards.length,
     unplayedCards: inMemoryCards.filter(c => c.times_played === 0).length,
+    dailyLatestCount: inMemoryCards.filter(c => c.is_daily_latest).length,
     eras
   };
 }
@@ -515,6 +564,7 @@ module.exports = {
   getCardById,
   recordCardPlay,
   insertTriviaCard,
+  getAllSongNames,
   getCandidateSongForGeneration,
   getDatabaseStats,
   cleanSongTitle,

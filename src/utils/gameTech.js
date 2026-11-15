@@ -65,6 +65,16 @@ export const ERA_THEMES = {
     accent: '#38bdf8',
     glow1: '#9333ea',
     glow2: '#e11d48'
+  },
+  latest: {
+    id: 'latest',
+    label: '🆕 Daily Latest (10/Day)',
+    tagline: '10 Fresh Latest Bollywood Chartbusters Added Daily for Both Games',
+    primary: '#34d399',
+    secondary: '#fbbf24',
+    accent: '#38bdf8',
+    glow1: '#059669',
+    glow2: '#0284c7'
   }
 };
 

@@ -32,6 +32,10 @@ export default function SoloMode({ onOpenSettings }) {
   const [smartHint, setSmartHint] = useState(null);
   const [loadingSmartHint, setLoadingSmartHint] = useState(false);
 
+  // Daily 10 Latest Songs Sync state
+  const [syncingDaily, setSyncingDaily] = useState(false);
+  const [dailySyncBanner, setDailySyncBanner] = useState(null);
+
   // Score state
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
@@ -83,6 +87,36 @@ export default function SoloMode({ onOpenSettings }) {
   useEffect(() => {
     loadNextCard();
   }, [selectedEra]);
+
+  const handleSyncDailyLatest = async () => {
+    if (syncingDaily) return;
+    sounds.playTick();
+    setSyncingDaily(true);
+    setDailySyncBanner(null);
+    try {
+      const res = await fetch('/api/trivia/daily-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ count: 10 })
+      });
+      const data = await res.json();
+      const addedCount = data.addedCount || 0;
+      setDailySyncBanner(
+        addedCount > 0
+          ? `✨ Added ${addedCount} fresh latest Bollywood songs to both Solo & 5s Blitz!`
+          : `✅ Today's 10 latest Bollywood tracks are synced & ready!`
+      );
+      if (selectedEra !== 'latest') {
+        triggerViewTransition(() => setSelectedEra('latest'));
+      } else {
+        loadNextCard(card?.id);
+      }
+    } catch (e) {
+      setDailySyncBanner('⚠️ Could not reach daily sync service right now.');
+    } finally {
+      setSyncingDaily(false);
+    }
+  };
 
   const handleRequestSmartHint = async () => {
     if (!card?.id || smartHint || loadingSmartHint) return;
@@ -247,6 +281,7 @@ export default function SoloMode({ onOpenSettings }) {
         <div className="era-filter-tabs" role="tablist" aria-label="Filter songs by Bollywood era">
           {[
             { id: 'all', label: '🌟 All Eras' },
+            { id: 'latest', label: '🆕 Daily Latest (10/Day)' },
             { id: 'Classics', label: '📻 Classics' },
             { id: '90s', label: '📼 90s Nostalgia' },
             { id: '2000s', label: '🎧 2000s Golden' },
@@ -267,7 +302,24 @@ export default function SoloMode({ onOpenSettings }) {
             </button>
           ))}
         </div>
-        <p className="era-tagline">{activeEraMeta.tagline}</p>
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-1">
+          <p className="era-tagline">{activeEraMeta.tagline}</p>
+          <button
+            type="button"
+            onClick={handleSyncDailyLatest}
+            disabled={syncingDaily}
+            className="btn btn-secondary text-xs py-1 px-3 rounded-full border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/15"
+            title="Fetch 10 latest Bollywood tracks for today into Solo & 5s Blitz"
+          >
+            <Sparkles size={13} className="text-emerald-400" aria-hidden="true" />
+            <span>{syncingDaily ? 'Syncing 10 Latest...' : '+10 Daily Latest Songs'}</span>
+          </button>
+        </div>
+        {dailySyncBanner && (
+          <p className="text-xs text-emerald-300 font-semibold mt-1 text-center" role="status">
+            {dailySyncBanner}
+          </p>
+        )}
       </div>
 
       {/* Card Loading / Error */}

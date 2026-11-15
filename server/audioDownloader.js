@@ -55,9 +55,9 @@ function isClipReady(cardId) {
   } catch (e) {
     // Filesystem check issue
   }
-  // Cards 1-210 are all bundled in public/audio_clips and dist/audio_clips
+  // Cards 1-220 are all bundled in public/audio_clips and dist/audio_clips
   const numId = parseInt(cardId, 10);
-  return numId >= 1 && numId <= 210;
+  return numId >= 1 && numId <= 220;
 }
 
 const BAD_KEYWORDS = [
