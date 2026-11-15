@@ -3,10 +3,9 @@ import confetti from 'canvas-confetti';
 import {
   Play, Pause, RotateCcw, Volume2, Sparkles, CheckCircle2,
   XCircle, ArrowRight, Trophy, Flame, Film, Clock,
-  Headphones, Disc, Mic2, Calendar, AlertTriangle, KeyRound
+  Headphones, Disc, Mic2, Calendar, AlertTriangle
 } from 'lucide-react';
 import YouTubePlayer from './YouTubePlayer';
-import LyricalDecodedCard from './LyricalDecodedCard';
 import { sounds } from './SoundEffects';
 import {
   ERA_THEMES,
@@ -19,17 +18,6 @@ const DEFAULT_BARS = [
   24, 42, 32, 64, 48, 76, 38, 84, 56, 36, 68, 52,
   88, 44, 72, 58, 80, 40, 62, 50, 74, 34, 58, 28
 ];
-
-function buildQuickMask(title = '') {
-  const words = title.trim().split(/\s+/).filter(Boolean);
-  return words
-    .map((w) => {
-      const clean = w.replace(/[^a-zA-Z0-9]/g, '');
-      if (clean.length <= 1) return clean.toUpperCase();
-      return clean[0].toUpperCase() + ' ' + '_ '.repeat(clean.length - 1).trim();
-    })
-    .join('   •   ');
-}
 
 export default function AudioBlitzMode() {
   const [playlistEra, setPlaylistEra] = useState('all');
@@ -44,7 +32,6 @@ export default function AudioBlitzMode() {
   const [hasPlayed5s, setHasPlayed5s] = useState(false);
   const [hasUnlocked10s, setHasUnlocked10s] = useState(false);
   const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
-  const [showLetterMask, setShowLetterMask] = useState(false);
 
   // Audio & Web Audio API Frequency Visualizer refs
   const [audioReady, setAudioReady] = useState(false);
@@ -141,7 +128,6 @@ export default function AudioBlitzMode() {
     setCurrentTime(0);
     setHasPlayed5s(false);
     setHasUnlocked10s(false);
-    setShowLetterMask(false);
     setUserGuess('');
     setGuessFeedback(null);
     setUsedMultipleChoice(false);
@@ -516,22 +502,6 @@ export default function AudioBlitzMode() {
                 )}
               </div>
 
-              {/* Optional 0-Penalty Word-Pattern Mask for Spelling Help */}
-              {showLetterMask && (
-                <div className="smart-decoder-card clue-entry-anim mt-3">
-                  <div className="decoder-header">
-                    <span className="decoder-badge">
-                      <KeyRound size={14} aria-hidden="true" />
-                      <span>Song Title Letter Pattern</span>
-                    </span>
-                    <span className="decoder-meta">Released in {card.release_year}</span>
-                  </div>
-                  <div className="title-mask-display">
-                    {buildQuickMask(card.song_name)}
-                  </div>
-                </div>
-              )}
-
               {/* Feedback Alert */}
               {guessFeedback && (
                 <div
@@ -574,22 +544,8 @@ export default function AudioBlitzMode() {
                 </form>
 
                 {/* Hint Buttons Row */}
-                <div className="blitz-lifelines-row">
-                  {!showLetterMask && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        sounds.playTick();
-                        triggerViewTransition(() => setShowLetterMask(true));
-                      }}
-                      className="btn btn-decoder-trigger"
-                    >
-                      <KeyRound size={15} aria-hidden="true" />
-                      <span>🔍 Show Letter Pattern (Free Spelling Aid)</span>
-                    </button>
-                  )}
-
-                  {!usedMultipleChoice && (
+                {!usedMultipleChoice && (
+                  <div className="blitz-lifelines-row">
                     <button
                       type="button"
                       onClick={() => {
@@ -601,8 +557,8 @@ export default function AudioBlitzMode() {
                       <Sparkles size={16} aria-hidden="true" />
                       <span>💡 Reveal 4 Choices (Half Points: {Math.floor(calculatePoints() / 2)} PTS)</span>
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {usedMultipleChoice && (
                   <div className="open-choices-section clue-entry-anim mt-3">
@@ -668,9 +624,6 @@ export default function AudioBlitzMode() {
                   <span><Disc size={14} className="inline mr-1 text-rose-400" aria-hidden="true" /><em>{card.era}</em></span>
                 </div>
               </div>
-
-              {/* Lyrical Riddles Decoded */}
-              <LyricalDecodedCard card={card} />
 
               {/* Deep Trivia Fun Fact */}
               {card.fun_fact && (
