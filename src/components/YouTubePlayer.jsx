@@ -15,17 +15,23 @@ export default function YouTubePlayer({
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const audioRef = useRef(null);
 
+  // Known video intro bumper offsets (e.g., Hai Rama channel advert ends at 13s)
+  const VIDEO_START_OFFSETS = {
+    '11v9ALkOiio': 13
+  };
+  const startOffset = VIDEO_START_OFFSETS[videoId] || (songName === 'Hai Rama' ? 13 : 0);
+
   // Generate hyper-accurate YouTube search query & direct video URL
   const primarySinger = artist ? artist.split(',')[0].split(';')[0].trim() : '';
   const query = searchQuery || `${songName} ${primarySinger} ${movieName} official video song`;
   const youtubeSearchUrl = videoId
-    ? `https://www.youtube.com/watch?v=${videoId}`
+    ? `https://www.youtube.com/watch?v=${videoId}${startOffset ? `&t=${startOffset}s` : ''}`
     : `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
 
-  // Construct YouTube embed URL (matches the exact video the 5s audio clip was cut from)
+  // Construct YouTube embed URL (matches the exact video & timestamp the 5s audio clip was cut from)
   let embedUrl = '';
   if (videoId) {
-    embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
+    embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1${startOffset ? `&start=${startOffset}` : ''}`;
   } else {
     embedUrl = `https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(query)}&autoplay=1`;
   }

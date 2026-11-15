@@ -6,6 +6,7 @@ import {
   Headphones, Disc, Mic2, Calendar, AlertTriangle
 } from 'lucide-react';
 import YouTubePlayer from './YouTubePlayer';
+import AudioBlitzTeamMode from './AudioBlitzTeamMode';
 import { sounds } from './SoundEffects';
 import {
   ERA_THEMES,
@@ -20,6 +21,7 @@ const DEFAULT_BARS = [
 ];
 
 export default function AudioBlitzMode() {
+  const [blitzSubMode, setBlitzSubMode] = useState('solo'); // 'solo' | 'teams'
   const [playlistEra, setPlaylistEra] = useState('all');
   const [card, setCard] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -307,8 +309,38 @@ export default function AudioBlitzMode() {
 
   return (
     <div className="audio-blitz-container clue-entry-anim">
-      {/* Top Banner Stats */}
-      <div className="stats-bar">
+      {/* Solo vs Team Battle Switcher for 5-Sec Game */}
+      <div className="guess-mode-switcher mb-4">
+        <button
+          type="button"
+          onClick={() => {
+            sounds.playTick();
+            stopAudio();
+            triggerViewTransition(() => setBlitzSubMode('solo'));
+          }}
+          className={`mode-btn ${blitzSubMode === 'solo' ? 'active' : ''}`}
+        >
+          🎧 Solo 5-Sec Challenge
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            sounds.playTick();
+            stopAudio();
+            triggerViewTransition(() => setBlitzSubMode('teams'));
+          }}
+          className={`mode-btn ${blitzSubMode === 'teams' ? 'active' : ''}`}
+        >
+          ⚔️ 5-Sec Team Battle (Sholay vs DDLJ)
+        </button>
+      </div>
+
+      {blitzSubMode === 'teams' ? (
+        <AudioBlitzTeamMode initialEra={playlistEra} />
+      ) : (
+        <>
+          {/* Top Banner Stats */}
+          <div className="stats-bar">
         <div className="stat-pill score-pill">
           <Trophy size={16} className="text-amber-400" aria-hidden="true" />
           <span>Score: <strong>{score}</strong></span>
@@ -657,6 +689,8 @@ export default function AudioBlitzMode() {
             </div>
           )}
         </div>
+      )}
+        </>
       )}
     </div>
   );

@@ -7,10 +7,12 @@ import {
 import ClueCard from './ClueCard';
 import YouTubePlayer from './YouTubePlayer';
 import LyricalDecodedCard from './LyricalDecodedCard';
+import AudioBlitzTeamMode from './AudioBlitzTeamMode';
 import { sounds } from './SoundEffects';
-import { matchBollywoodSongGuess } from '../utils/gameTech';
+import { matchBollywoodSongGuess, triggerViewTransition } from '../utils/gameTech';
 
 export default function TeamPartyMode() {
+  const [teamBattleType, setTeamBattleType] = useState('lyrical'); // 'lyrical' | 'blitz'
   const [teams, setTeams] = useState([
     { id: 'team_red', name: 'Team Sholay', color: '#e11d48', score: 0 },
     { id: 'team_blue', name: 'Team DDLJ', color: '#2563eb', score: 0 }
@@ -244,8 +246,36 @@ export default function TeamPartyMode() {
 
   return (
     <div className="team-mode-container animate-fade-in">
-      {/* Team Scoreboard Banner */}
-      <div className="team-scores-header">
+      {/* Team Battle Game Type Switcher */}
+      <div className="guess-mode-switcher mb-4">
+        <button
+          type="button"
+          onClick={() => {
+            sounds.playTick();
+            triggerViewTransition(() => setTeamBattleType('lyrical'));
+          }}
+          className={`mode-btn ${teamBattleType === 'lyrical' ? 'active' : ''}`}
+        >
+          📜 Lyrical Riddles Team Battle
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            sounds.playTick();
+            triggerViewTransition(() => setTeamBattleType('blitz'));
+          }}
+          className={`mode-btn ${teamBattleType === 'blitz' ? 'active' : ''}`}
+        >
+          ⚡ 5-Sec Audio Blitz Team Battle
+        </button>
+      </div>
+
+      {teamBattleType === 'blitz' ? (
+        <AudioBlitzTeamMode />
+      ) : (
+        <>
+          {/* Team Scoreboard Banner */}
+          <div className="team-scores-header">
         {teams.map((t, idx) => (
           <div
             key={t.id}
@@ -638,6 +668,8 @@ export default function TeamPartyMode() {
               )}
             </div>
           )}
+        </>
+      )}
         </>
       )}
     </div>
