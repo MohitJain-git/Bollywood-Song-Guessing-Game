@@ -42,11 +42,20 @@ const {
 
 const roomManager = require('./roomManager');
 
-// Initialize database and trigger daily 10 latest songs sync
+// Initialize database and trigger automatic daily 10 latest songs sync
 initDatabase();
 ensureDailyLatestSongs().catch((err) => {
   console.warn('[DailySync] Initial daily sync check warning:', err.message);
 });
+
+// Check every 6 hours on persistent servers to ensure each new calendar day adds 10 latest songs
+if (!process.env.VERCEL) {
+  setInterval(() => {
+    ensureDailyLatestSongs().catch((err) => {
+      console.warn('[DailySync] Scheduled daily sync check warning:', err.message);
+    });
+  }, 6 * 60 * 60 * 1000).unref();
+}
 
 const app = express();
 const server = http.createServer(app);

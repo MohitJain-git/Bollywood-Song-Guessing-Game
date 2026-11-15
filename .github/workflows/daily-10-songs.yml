@@ -1,0 +1,45 @@
+name: Daily 10 Latest Bollywood Songs Sync
+
+on:
+  schedule:
+    # Runs automatically every day at 06:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-daily-songs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22+ (with built-in node:sqlite)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install ffmpeg for 15s studio MP3 clip extraction
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync 10 latest Bollywood songs & extract studio audio clips
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: node scripts/syncDaily10Songs.js
+
+      - name: Commit and push daily songs to trigger Vercel deployment
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add server/bollywood_game.db public/audio_clips/
+          if git diff --staged --quiet; then
+            echo "No new songs needed today."
+          else
+            git commit -m "chore(daily-songs): auto-add 10 latest Bollywood songs for Solo & 5s Blitz"
+            git push origin main
+          fi

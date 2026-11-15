@@ -494,6 +494,18 @@ function getAllSongNames() {
   return inMemoryCards.map(c => c.song_name);
 }
 
+function getTodayAddedCount(todayStr) {
+  if (db && !useMemoryFallback) {
+    try {
+      const row = db.prepare('SELECT COUNT(*) as c FROM trivia_cards WHERE added_date = ?').get(todayStr);
+      return row ? row.c : 0;
+    } catch (err) {
+      console.warn('[DB] getTodayAddedCount SQLite failed:', err.message);
+    }
+  }
+  return inMemoryCards.filter(c => c.added_date === todayStr).length;
+}
+
 function getCandidateSongForGeneration(era) {
   if (db && !useMemoryFallback) {
     try {
@@ -565,6 +577,7 @@ module.exports = {
   recordCardPlay,
   insertTriviaCard,
   getAllSongNames,
+  getTodayAddedCount,
   getCandidateSongForGeneration,
   getDatabaseStats,
   cleanSongTitle,

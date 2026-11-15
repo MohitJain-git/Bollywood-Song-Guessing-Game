@@ -1,7 +1,8 @@
 const {
   getDatabaseStats,
   insertTriviaCard,
-  getAllSongNames
+  getAllSongNames,
+  getTodayAddedCount
 } = require('./database');
 const {
   getApiKey,
@@ -365,12 +366,12 @@ async function ensureDailyLatestSongs() {
   if (lastDailySyncDate === todayStr) {
     return { alreadySynced: true, date: todayStr };
   }
-  const stats = getDatabaseStats();
-  if (stats.dailyLatestCount >= 10) {
+  const addedToday = getTodayAddedCount(todayStr);
+  if (addedToday >= 10) {
     lastDailySyncDate = todayStr;
-    return { alreadySynced: true, date: todayStr, dailyLatestCount: stats.dailyLatestCount };
+    return { alreadySynced: true, date: todayStr, addedToday };
   }
-  return await syncDailyLatestSongs(10);
+  return await syncDailyLatestSongs(10 - addedToday);
 }
 
 function getLastDailySyncInfo() {

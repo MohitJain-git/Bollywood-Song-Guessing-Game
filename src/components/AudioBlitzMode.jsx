@@ -61,10 +61,6 @@ export default function AudioBlitzMode() {
   const [guessFeedback, setGuessFeedback] = useState(null);
   const [usedMultipleChoice, setUsedMultipleChoice] = useState(false);
 
-  // Daily 10 Latest Songs Sync state
-  const [syncingDaily, setSyncingDaily] = useState(false);
-  const [dailySyncBanner, setDailySyncBanner] = useState(null);
-
   // Score
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
@@ -180,36 +176,6 @@ export default function AudioBlitzMode() {
   useEffect(() => {
     loadNextSong();
   }, [playlistEra]);
-
-  const handleSyncDailyLatest = async () => {
-    if (syncingDaily) return;
-    sounds.playTick();
-    setSyncingDaily(true);
-    setDailySyncBanner(null);
-    try {
-      const res = await fetch('/api/trivia/daily-sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ count: 10 })
-      });
-      const data = await res.json();
-      const addedCount = data.addedCount || 0;
-      setDailySyncBanner(
-        addedCount > 0
-          ? `✨ Added ${addedCount} fresh latest Bollywood songs to 5s Audio Blitz & Solo Mode!`
-          : `✅ Today's 10 latest Bollywood tracks are synced & ready!`
-      );
-      if (playlistEra !== 'latest') {
-        triggerViewTransition(() => setPlaylistEra('latest'));
-      } else {
-        loadNextSong(card?.id);
-      }
-    } catch (e) {
-      setDailySyncBanner('⚠️ Could not reach daily sync service right now.');
-    } finally {
-      setSyncingDaily(false);
-    }
-  };
 
   useEffect(() => {
     return () => {
@@ -376,7 +342,6 @@ export default function AudioBlitzMode() {
         <div className="era-filter-tabs" role="tablist" aria-label="Select Bollywood Blitz Era">
           {[
             { id: 'all', label: '🔥 All-Time Hits' },
-            { id: 'latest', label: '🆕 Daily Latest (10/Day)' },
             { id: 'Classics', label: '📻 Evergreen Legends' },
             { id: '90s', label: '📼 90s Golden Era' },
             { id: '2000s', label: '🎧 2000s Nostalgia' },
@@ -397,24 +362,7 @@ export default function AudioBlitzMode() {
             </button>
           ))}
         </div>
-        <div className="flex flex-wrap items-center justify-center gap-3 mt-1">
-          <p className="era-tagline">{activeEraMeta.tagline}</p>
-          <button
-            type="button"
-            onClick={handleSyncDailyLatest}
-            disabled={syncingDaily}
-            className="btn btn-secondary text-xs py-1 px-3 rounded-full border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/15"
-            title="Fetch 10 latest Bollywood tracks for today into 5s Blitz & Solo Mode"
-          >
-            <Sparkles size={13} className="text-emerald-400" aria-hidden="true" />
-            <span>{syncingDaily ? 'Syncing 10 Latest...' : '+10 Daily Latest Songs'}</span>
-          </button>
-        </div>
-        {dailySyncBanner && (
-          <p className="text-xs text-emerald-300 font-semibold mt-1 text-center" role="status">
-            {dailySyncBanner}
-          </p>
-        )}
+        <p className="era-tagline">{activeEraMeta.tagline}</p>
       </div>
 
       {loading && (
