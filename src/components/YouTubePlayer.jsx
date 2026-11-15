@@ -15,12 +15,14 @@ export default function YouTubePlayer({
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const audioRef = useRef(null);
 
-  // Generate hyper-accurate YouTube search query including the singer/artist
+  // Generate hyper-accurate YouTube search query & direct video URL
   const primarySinger = artist ? artist.split(',')[0].split(';')[0].trim() : '';
   const query = searchQuery || `${songName} ${primarySinger} ${movieName} official video song`;
-  const youtubeSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+  const youtubeSearchUrl = videoId
+    ? `https://www.youtube.com/watch?v=${videoId}`
+    : `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
 
-  // Construct YouTube embed URL
+  // Construct YouTube embed URL (matches the exact video the 5s audio clip was cut from)
   let embedUrl = '';
   if (videoId) {
     embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
@@ -182,10 +184,16 @@ export default function YouTubePlayer({
         <div className="local-audio-view animate-fade-in p-4 bg-zinc-900/90 rounded-xl border border-amber-500/30 text-center">
           <audio
             ref={audioRef}
-            src={`/api/audio/${cardId}`}
+            src={`/audio_clips/${cardId}.mp3`}
             onEnded={() => setIsAudioPlaying(false)}
             onPause={() => setIsAudioPlaying(false)}
             onPlay={() => setIsAudioPlaying(true)}
+            onError={(e) => {
+              if (!e.target.dataset.retried) {
+                e.target.dataset.retried = 'true';
+                e.target.src = `/api/audio/${cardId}`;
+              }
+            }}
           />
           <div className="flex items-center justify-center gap-3 mb-3">
             <button

@@ -235,21 +235,35 @@ function initDatabase() {
       console.log(`[DB] Successfully loaded ${totalImported} unique songs into database.`);
     }
 
-    // 3. Seed starter trivia cards if empty
-    const cardCount = db.prepare('SELECT COUNT(*) as count FROM trivia_cards').get().count;
-    if (cardCount === 0) {
-      console.log(`[DB] Seeding ${CURATED_210_SONGS.length} curated Bollywood trivia cards...`);
+    // 3. Seed or sync curated 210 trivia cards with exact IDs 1..210 and verified YouTube IDs
+    const rowInfo = db.prepare('SELECT COUNT(*) as count, MIN(id) as minId FROM trivia_cards').get();
+    const firstCard = db.prepare('SELECT youtube_video_id FROM trivia_cards WHERE id = 1').get();
+    const needsSync =
+      rowInfo.count === 0 ||
+      rowInfo.minId !== 1 ||
+      !firstCard ||
+      firstCard.youtube_video_id !== CURATED_210_SONGS[0].youtube_video_id;
+
+    if (needsSync) {
+      console.log(`[DB] Synchronizing ${CURATED_210_SONGS.length} curated Bollywood trivia cards (IDs 1..210 + verified YouTube IDs)...`);
+      db.exec('DELETE FROM trivia_cards;');
+      try {
+        db.exec("DELETE FROM sqlite_sequence WHERE name='trivia_cards';");
+      } catch (e) {}
+
       const insertCard = db.prepare(`
         INSERT INTO trivia_cards (
-          song_name, movie_name, artist, era, release_year,
+          id, song_name, movie_name, artist, era, release_year,
           english_riddle_1, english_riddle_2, hinglish_lyrics_1, hinglish_lyrics_2,
           actor_visual_clue, music_director_clue, distractors,
           youtube_video_id, youtube_search_query, fun_fact
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
-      for (const card of CURATED_210_SONGS) {
+      for (let i = 0; i < CURATED_210_SONGS.length; i++) {
+        const card = CURATED_210_SONGS[i];
         insertCard.run(
+          card.id || i + 1,
           card.song_name,
           card.movie_name,
           card.artist,
@@ -267,7 +281,7 @@ function initDatabase() {
           card.fun_fact || ''
         );
       }
-      console.log('[DB] Curated cards seeded successfully.');
+      console.log('[DB] Curated cards synchronized (IDs 1..210).');
     }
   } catch (err) {
     console.warn('[DB] Failed to run schema migration on SQLite; falling back to In-Memory Catalog:', err.message);
