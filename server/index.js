@@ -116,6 +116,13 @@ app.get('/api/trivia/next', async (req, res) => {
   try {
     const era = req.query.era || 'all';
     const excludeId = req.query.excludeId ? parseInt(req.query.excludeId, 10) : null;
+    const excludeIds = req.query.excludeIds
+      ? String(req.query.excludeIds)
+          .split(',')
+          .map((n) => parseInt(n, 10))
+          .filter((n) => !isNaN(n))
+          .slice(-150)
+      : [];
 
     if (era === 'latest') {
       await ensureDailyLatestSongs();
@@ -123,7 +130,7 @@ app.get('/api/trivia/next', async (req, res) => {
       ensureDailyLatestSongs().catch(() => {});
     }
 
-    let card = getTriviaCard({ era, excludeId });
+    let card = getTriviaCard({ era, excludeId, excludeIds });
 
     // If completely empty, generate one immediately
     if (!card) {

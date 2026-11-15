@@ -226,3 +226,31 @@ export function triggerViewTransition(updateCallback, focusSelector = null) {
     routeFocus();
   });
 }
+
+/**
+ * Safely loads persisted session state from localStorage so page reloads
+ * preserve the active song, clue level, score, streak, and team state.
+ */
+export function loadSessionState(storageKey, fallback = {}) {
+  if (typeof window === 'undefined' || !window.localStorage) return fallback;
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? { ...fallback, ...parsed } : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+/**
+ * Safely saves session state to localStorage
+ */
+export function saveSessionState(storageKey, stateObj) {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify(stateObj));
+  } catch (e) {
+    // Ignore storage quota errors
+  }
+}

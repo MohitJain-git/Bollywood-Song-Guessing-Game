@@ -12,38 +12,97 @@ import {
   ERA_THEMES,
   applyEraTheme,
   matchBollywoodSongGuess,
-  triggerViewTransition
+  triggerViewTransition,
+  loadSessionState,
+  saveSessionState
 } from '../utils/gameTech';
 
+const SOLO_STORAGE_KEY = 'bolly_solo_session_v1';
+
 export default function SoloMode({ onOpenSettings }) {
-  const [selectedEra, setSelectedEra] = useState('all');
-  const [card, setCard] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const initialSession = loadSessionState(SOLO_STORAGE_KEY, {
+    selectedEra: 'all',
+    card: null,
+    currentClueLevel: 1,
+    isAnswerRevealed: false,
+    userGuess: '',
+    guessFeedback: null,
+    shuffledOptions: [],
+    usedMultipleChoice: false,
+    smartHint: null,
+    score: 0,
+    streak: 0,
+    bestStreak: 0,
+    playedIds: []
+  });
+
+  const [selectedEra, setSelectedEra] = useState(initialSession.selectedEra || 'all');
+  const [card, setCard] = useState(initialSession.card || null);
+  const [loading, setLoading] = useState(!initialSession.card);
   const [error, setError] = useState(null);
 
-  const [currentClueLevel, setCurrentClueLevel] = useState(1);
-  const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
-  const [userGuess, setUserGuess] = useState('');
-  const [guessFeedback, setGuessFeedback] = useState(null); // { status: 'correct'|'close'|'wrong', message: string }
-  const [shuffledOptions, setShuffledOptions] = useState([]);
-  const [usedMultipleChoice, setUsedMultipleChoice] = useState(false);
+  const [currentClueLevel, setCurrentClueLevel] = useState(initialSession.currentClueLevel || 1);
+  const [isAnswerRevealed, setIsAnswerRevealed] = useState(Boolean(initialSession.isAnswerRevealed));
+  const [userGuess, setUserGuess] = useState(initialSession.userGuess || '');
+  const [guessFeedback, setGuessFeedback] = useState(initialSession.guessFeedback || null);
+  const [shuffledOptions, setShuffledOptions] = useState(
+    Array.isArray(initialSession.shuffledOptions) ? initialSession.shuffledOptions : []
+  );
+  const [usedMultipleChoice, setUsedMultipleChoice] = useState(Boolean(initialSession.usedMultipleChoice));
 
   // AI Smart Hint / Shayari Decoder
-  const [smartHint, setSmartHint] = useState(null);
+  const [smartHint, setSmartHint] = useState(initialSession.smartHint || null);
   const [loadingSmartHint, setLoadingSmartHint] = useState(false);
 
-  // Score state
-  const [score, setScore] = useState(0);
-  const [streak, setStreak] = useState(0);
-  const [bestStreak, setBestStreak] = useState(0);
+  // Score & Session History state
+  const [score, setScore] = useState(Number(initialSession.score) || 0);
+  const [streak, setStreak] = useState(Number(initialSession.streak) || 0);
+  const [bestStreak, setBestStreak] = useState(Number(initialSession.bestStreak) || 0);
+  const [playedIds, setPlayedIds] = useState(
+    Array.isArray(initialSession.playedIds) ? initialSession.playedIds : []
+  );
 
   // Apply dynamic era color theme
   useEffect(() => {
     applyEraTheme(selectedEra);
   }, [selectedEra]);
 
+  // Persist session state across browser reloads
+  useEffect(() => {
+    saveSessionState(SOLO_STORAGE_KEY, {
+      selectedEra,
+      card,
+      currentClueLevel,
+      isAnswerRevealed,
+      userGuess,
+      guessFeedback,
+      shuffledOptions,
+      usedMultipleChoice,
+      smartHint,
+      score,
+      streak,
+      bestStreak,
+      playedIds
+    });
+  }, [
+    selectedEra,
+    card,
+    currentClueLevel,
+    isAnswerRevealed,
+    userGuess,
+    guessFeedback,
+    shuffledOptions,
+    usedMultipleChoice,
+    smartHint,
+    score,
+    streak,
+    bestStreak,
+    playedIds
+  ]);
+
   // Load new card
-  const loadNextCard = async (excludeId = null) => {
+  const loadNextCard = async (excludeId = null, eraOverride = null) => {
+    const activeEra = eraOverride || selectedEra;
     setLoading(true);
     setError(null);
     setIsAnswerRevealed(false);
@@ -54,14 +113,21 @@ export default function SoloMode({ onOpenSettings }) {
     setSmartHint(null);
 
     try {
-      let url = `/api/trivia/next?era=${selectedEra}`;
+      let url = `/api/trivia/next?era=${activeEra}`;
       if (excludeId) url += `&excludeId=${excludeId}`;
+      const recentExcluded = playedIds.slice(-120);
+      if (recentExcluded.length > 0) {
+        url += `&excludeIds=${recentExcluded.join(',')}`;
+      }
       const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to load Bollywood song');
       const data = await res.json();
       setCard(data.card);
 
       if (data.card) {
+        setPlayedIds((prev) =>
+          prev.includes(data.card.id) ? prev : [...prev.slice(-149), data.card.id]
+        );
         const options = [
           data.card.song_name,
           ...(Array.isArray(data.card.distractors) ? data.card.distractors : [])
@@ -80,9 +146,12 @@ export default function SoloMode({ onOpenSettings }) {
     }
   };
 
+  // Only fetch on initial mount if there was no saved card in session
   useEffect(() => {
-    loadNextCard();
-  }, [selectedEra]);
+    if (!card) {
+      loadNextCard();
+    }
+  }, []);
 
   const handleRequestSmartHint = async () => {
     if (!card?.id || smartHint || loadingSmartHint) return;
@@ -258,8 +327,12 @@ export default function SoloMode({ onOpenSettings }) {
               role="tab"
               aria-selected={selectedEra === tab.id}
               onClick={() => {
+                if (selectedEra === tab.id) return;
                 sounds.playTick();
-                triggerViewTransition(() => setSelectedEra(tab.id));
+                triggerViewTransition(() => {
+                  setSelectedEra(tab.id);
+                  loadNextCard(card?.id, tab.id);
+                });
               }}
               className={`era-tab-btn ${selectedEra === tab.id ? 'active' : ''}`}
             >

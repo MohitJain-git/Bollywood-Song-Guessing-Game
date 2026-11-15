@@ -308,22 +308,32 @@ function initDatabase() {
 
 // Trivia Card retrieval & queries
 function getTriviaCard(filter = {}) {
-  const { era, excludeId } = filter;
+  const { era, excludeId, excludeIds = [] } = filter;
+  const cleanExcludeIds = Array.isArray(excludeIds)
+    ? excludeIds.map((n) => parseInt(n, 10)).filter((n) => !isNaN(n))
+    : [];
+  if (excludeId && !isNaN(parseInt(excludeId, 10)) && !cleanExcludeIds.includes(parseInt(excludeId, 10))) {
+    cleanExcludeIds.push(parseInt(excludeId, 10));
+  }
 
   if (db && !useMemoryFallback) {
     try {
-      let sql = 'SELECT * FROM trivia_cards WHERE 1=1';
-      const params = [];
+      let baseSql = 'SELECT * FROM trivia_cards WHERE 1=1';
+      const baseParams = [];
 
       if (era === 'latest') {
-        sql += ' AND (is_daily_latest = 1 OR release_year >= 2024)';
+        baseSql += ' AND (is_daily_latest = 1 OR release_year >= 2024)';
       } else if (era && era !== 'all') {
-        sql += ' AND era = ?';
-        params.push(era);
+        baseSql += ' AND era = ?';
+        baseParams.push(era);
       }
-      if (excludeId) {
-        sql += ' AND id != ?';
-        params.push(excludeId);
+
+      let sql = baseSql;
+      const params = [...baseParams];
+      if (cleanExcludeIds.length > 0) {
+        const placeholders = cleanExcludeIds.map(() => '?').join(',');
+        sql += ` AND id NOT IN (${placeholders})`;
+        params.push(...cleanExcludeIds);
       }
 
       // Prioritize unplayed cards first
@@ -333,6 +343,17 @@ function getTriviaCard(filter = {}) {
       if (!card) {
         const randomSql = `${sql} ORDER BY times_played ASC, is_daily_latest DESC, RANDOM() LIMIT 1`;
         card = db.prepare(randomSql).get(...params);
+      }
+
+      // If all cards in this era were in excludeIds, allow any card except the immediate excludeId
+      if (!card) {
+        let fallbackSql = baseSql;
+        const fallbackParams = [...baseParams];
+        if (excludeId) {
+          fallbackSql += ' AND id != ?';
+          fallbackParams.push(excludeId);
+        }
+        card = db.prepare(`${fallbackSql} ORDER BY RANDOM() LIMIT 1`).get(...fallbackParams);
       }
 
       if (card && card.distractors) {
@@ -359,9 +380,15 @@ function getTriviaCard(filter = {}) {
     pool = pool.filter(c => c.era === era);
     if (pool.length === 0) pool = inMemoryCards;
   }
-  if (excludeId) {
-    const withoutExcluded = pool.filter(c => c.id !== parseInt(excludeId, 10));
-    if (withoutExcluded.length > 0) pool = withoutExcluded;
+  if (cleanExcludeIds.length > 0) {
+    const excludeSet = new Set(cleanExcludeIds);
+    const withoutExcluded = pool.filter(c => !excludeSet.has(c.id));
+    if (withoutExcluded.length > 0) {
+      pool = withoutExcluded;
+    } else if (excludeId) {
+      const withoutLast = pool.filter(c => c.id !== parseInt(excludeId, 10));
+      if (withoutLast.length > 0) pool = withoutLast;
+    }
   }
 
   // Prioritize unplayed

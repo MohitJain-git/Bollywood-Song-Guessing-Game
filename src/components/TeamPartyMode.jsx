@@ -9,45 +9,132 @@ import YouTubePlayer from './YouTubePlayer';
 import LyricalDecodedCard from './LyricalDecodedCard';
 import AudioBlitzTeamMode from './AudioBlitzTeamMode';
 import { sounds } from './SoundEffects';
-import { matchBollywoodSongGuess, triggerViewTransition } from '../utils/gameTech';
+import {
+  matchBollywoodSongGuess,
+  triggerViewTransition,
+  loadSessionState,
+  saveSessionState
+} from '../utils/gameTech';
+
+const TEAM_LYRICAL_STORAGE_KEY = 'bolly_team_lyrical_session_v1';
 
 export default function TeamPartyMode() {
-  const [teamBattleType, setTeamBattleType] = useState('lyrical'); // 'lyrical' | 'blitz'
-  const [teams, setTeams] = useState([
-    { id: 'team_red', name: 'Team Sholay', color: '#e11d48', score: 0 },
-    { id: 'team_blue', name: 'Team DDLJ', color: '#2563eb', score: 0 }
-  ]);
-  const [activeTeamIdx, setActiveTeamIdx] = useState(0);
-  const [roundNumber, setRoundNumber] = useState(1);
-  const [targetScore, setTargetScore] = useState(500);
+  const initialSession = loadSessionState(TEAM_LYRICAL_STORAGE_KEY, {
+    teamBattleType: 'lyrical',
+    teams: [
+      { id: 'team_red', name: 'Team Sholay', color: '#e11d48', score: 0 },
+      { id: 'team_blue', name: 'Team DDLJ', color: '#2563eb', score: 0 }
+    ],
+    activeTeamIdx: 0,
+    roundNumber: 1,
+    targetScore: 500,
+    card: null,
+    currentClueLevel: 1,
+    isAnswerRevealed: false,
+    guessStyle: 'type',
+    usedMultipleChoice: false,
+    teamGuessInput: '',
+    shuffledOptions: [],
+    guessFeedback: null,
+    isStealPhase: false,
+    stealInput: '',
+    timeLeft: 45,
+    winnerTeam: null,
+    playedIds: []
+  });
 
-  const [card, setCard] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [currentClueLevel, setCurrentClueLevel] = useState(1);
-  const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
+  const [teamBattleType, setTeamBattleType] = useState(initialSession.teamBattleType || 'lyrical'); // 'lyrical' | 'blitz'
+  const [teams, setTeams] = useState(
+    Array.isArray(initialSession.teams) && initialSession.teams.length === 2
+      ? initialSession.teams
+      : [
+          { id: 'team_red', name: 'Team Sholay', color: '#e11d48', score: 0 },
+          { id: 'team_blue', name: 'Team DDLJ', color: '#2563eb', score: 0 }
+        ]
+  );
+  const [activeTeamIdx, setActiveTeamIdx] = useState(Number(initialSession.activeTeamIdx) || 0);
+  const [roundNumber, setRoundNumber] = useState(Number(initialSession.roundNumber) || 1);
+  const [targetScore, setTargetScore] = useState(Number(initialSession.targetScore) || 500);
+
+  const [card, setCard] = useState(initialSession.card || null);
+  const [loading, setLoading] = useState(!initialSession.card);
+  const [currentClueLevel, setCurrentClueLevel] = useState(initialSession.currentClueLevel || 1);
+  const [isAnswerRevealed, setIsAnswerRevealed] = useState(Boolean(initialSession.isAnswerRevealed));
 
   // Guessing controls for team
-  const [guessStyle, setGuessStyle] = useState('type'); // 'type' | 'host'
-  const [usedMultipleChoice, setUsedMultipleChoice] = useState(false); // Multiple Choice as Hint (Halves points)
-  const [teamGuessInput, setTeamGuessInput] = useState('');
-  const [shuffledOptions, setShuffledOptions] = useState([]);
-  const [guessFeedback, setGuessFeedback] = useState(null); // { correct: boolean, message: string }
+  const [guessStyle, setGuessStyle] = useState(initialSession.guessStyle || 'type'); // 'type' | 'host'
+  const [usedMultipleChoice, setUsedMultipleChoice] = useState(Boolean(initialSession.usedMultipleChoice));
+  const [teamGuessInput, setTeamGuessInput] = useState(initialSession.teamGuessInput || '');
+  const [shuffledOptions, setShuffledOptions] = useState(
+    Array.isArray(initialSession.shuffledOptions) ? initialSession.shuffledOptions : []
+  );
+  const [guessFeedback, setGuessFeedback] = useState(initialSession.guessFeedback || null);
 
   // Steal state
-  const [isStealPhase, setIsStealPhase] = useState(false);
-  const [stealInput, setStealInput] = useState('');
+  const [isStealPhase, setIsStealPhase] = useState(Boolean(initialSession.isStealPhase));
+  const [stealInput, setStealInput] = useState(initialSession.stealInput || '');
 
   // Host secret peek
   const [showHostPeek, setShowHostPeek] = useState(false);
 
-  // Timer
-  const [timeLeft, setTimeLeft] = useState(45);
-  const [timerActive, setTimerActive] = useState(true);
-  const [winnerTeam, setWinnerTeam] = useState(null);
+  // Timer & Session History
+  const [timeLeft, setTimeLeft] = useState(
+    typeof initialSession.timeLeft === 'number' && initialSession.timeLeft > 0
+      ? initialSession.timeLeft
+      : 45
+  );
+  const [timerActive, setTimerActive] = useState(!initialSession.isAnswerRevealed);
+  const [winnerTeam, setWinnerTeam] = useState(initialSession.winnerTeam || null);
+  const [playedIds, setPlayedIds] = useState(
+    Array.isArray(initialSession.playedIds) ? initialSession.playedIds : []
+  );
 
   // Team editing
   const [editingTeamIdx, setEditingTeamIdx] = useState(null);
   const [editNameText, setEditNameText] = useState('');
+
+  // Persist session state across browser reloads
+  useEffect(() => {
+    saveSessionState(TEAM_LYRICAL_STORAGE_KEY, {
+      teamBattleType,
+      teams,
+      activeTeamIdx,
+      roundNumber,
+      targetScore,
+      card,
+      currentClueLevel,
+      isAnswerRevealed,
+      guessStyle,
+      usedMultipleChoice,
+      teamGuessInput,
+      shuffledOptions,
+      guessFeedback,
+      isStealPhase,
+      stealInput,
+      timeLeft,
+      winnerTeam,
+      playedIds
+    });
+  }, [
+    teamBattleType,
+    teams,
+    activeTeamIdx,
+    roundNumber,
+    targetScore,
+    card,
+    currentClueLevel,
+    isAnswerRevealed,
+    guessStyle,
+    usedMultipleChoice,
+    teamGuessInput,
+    shuffledOptions,
+    guessFeedback,
+    isStealPhase,
+    stealInput,
+    timeLeft,
+    winnerTeam,
+    playedIds
+  ]);
 
   const loadNewRound = async (excludeId = null) => {
     setLoading(true);
@@ -63,13 +150,19 @@ export default function TeamPartyMode() {
     setShowHostPeek(false);
 
     try {
-      let url = '/api/trivia/next';
-      if (excludeId) url += `?excludeId=${excludeId}`;
+      const params = [];
+      if (excludeId) params.push(`excludeId=${excludeId}`);
+      const recentExcluded = playedIds.slice(-120);
+      if (recentExcluded.length > 0) params.push(`excludeIds=${recentExcluded.join(',')}`);
+      const url = `/api/trivia/next${params.length > 0 ? `?${params.join('&')}` : ''}`;
       const res = await fetch(url);
       const data = await res.json();
       setCard(data.card);
 
       if (data.card) {
+        setPlayedIds((prev) =>
+          prev.includes(data.card.id) ? prev : [...prev.slice(-149), data.card.id]
+        );
         const options = [
           data.card.song_name,
           ...(Array.isArray(data.card.distractors) ? data.card.distractors : [])
@@ -89,7 +182,9 @@ export default function TeamPartyMode() {
   };
 
   useEffect(() => {
-    loadNewRound();
+    if (!card) {
+      loadNewRound();
+    }
   }, []);
 
   // Timer countdown hook

@@ -1,15 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import SoloMode from './components/SoloMode';
 import AudioBlitzMode from './components/AudioBlitzMode';
 import TeamPartyMode from './components/TeamPartyMode';
 import MultiplayerMode from './components/MultiplayerMode';
 import SettingsModal from './components/SettingsModal';
-import { triggerViewTransition } from './utils/gameTech';
+import { triggerViewTransition, loadSessionState, saveSessionState } from './utils/gameTech';
 
 export default function App() {
-  const [activeMode, setActiveMode] = useState('solo'); // 'solo', 'blitz', 'teams', 'multiplayer'
+  const [activeMode, setActiveMode] = useState(() => {
+    const saved = loadSessionState('bolly_app_nav_v1', { activeMode: 'solo' });
+    return saved.activeMode || 'solo';
+  });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    saveSessionState('bolly_app_nav_v1', { activeMode });
+  }, [activeMode]);
 
   const handleModeChange = (nextMode) => {
     if (nextMode === activeMode) return;

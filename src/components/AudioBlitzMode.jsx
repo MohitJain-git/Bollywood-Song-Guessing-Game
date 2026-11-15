@@ -12,8 +12,12 @@ import {
   ERA_THEMES,
   applyEraTheme,
   matchBollywoodSongGuess,
-  triggerViewTransition
+  triggerViewTransition,
+  loadSessionState,
+  saveSessionState
 } from '../utils/gameTech';
+
+const BLITZ_STORAGE_KEY = 'bolly_blitz_solo_session_v1';
 
 const DEFAULT_BARS = [
   24, 42, 32, 64, 48, 76, 38, 84, 56, 36, 68, 52,
@@ -21,19 +25,37 @@ const DEFAULT_BARS = [
 ];
 
 export default function AudioBlitzMode() {
-  const [blitzSubMode, setBlitzSubMode] = useState('solo'); // 'solo' | 'teams'
-  const [playlistEra, setPlaylistEra] = useState('all');
-  const [card, setCard] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const initialSession = loadSessionState(BLITZ_STORAGE_KEY, {
+    blitzSubMode: 'solo',
+    playlistEra: 'all',
+    card: null,
+    clipSeconds: 5,
+    hasPlayed5s: false,
+    hasUnlocked10s: false,
+    isAnswerRevealed: false,
+    userGuess: '',
+    shuffledOptions: [],
+    guessFeedback: null,
+    usedMultipleChoice: false,
+    score: 0,
+    streak: 0,
+    bestStreak: 0,
+    playedIds: []
+  });
+
+  const [blitzSubMode, setBlitzSubMode] = useState(initialSession.blitzSubMode || 'solo'); // 'solo' | 'teams'
+  const [playlistEra, setPlaylistEra] = useState(initialSession.playlistEra || 'all');
+  const [card, setCard] = useState(initialSession.card || null);
+  const [loading, setLoading] = useState(!initialSession.card);
   const [error, setError] = useState(null);
 
   // Audio blitz clip states
-  const [clipSeconds, setClipSeconds] = useState(5); // 5 or 10
+  const [clipSeconds, setClipSeconds] = useState(initialSession.clipSeconds || 5); // 5 or 10
   const [isPlayingClip, setIsPlayingClip] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [hasPlayed5s, setHasPlayed5s] = useState(false);
-  const [hasUnlocked10s, setHasUnlocked10s] = useState(false);
-  const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
+  const [hasPlayed5s, setHasPlayed5s] = useState(Boolean(initialSession.hasPlayed5s));
+  const [hasUnlocked10s, setHasUnlocked10s] = useState(Boolean(initialSession.hasUnlocked10s));
+  const [isAnswerRevealed, setIsAnswerRevealed] = useState(Boolean(initialSession.isAnswerRevealed));
 
   // Audio & Web Audio API Frequency Visualizer refs
   const [audioReady, setAudioReady] = useState(false);
@@ -45,19 +67,61 @@ export default function AudioBlitzMode() {
   const rafRef = useRef(null);
 
   // Guessing
-  const [userGuess, setUserGuess] = useState('');
-  const [shuffledOptions, setShuffledOptions] = useState([]);
-  const [guessFeedback, setGuessFeedback] = useState(null);
-  const [usedMultipleChoice, setUsedMultipleChoice] = useState(false);
+  const [userGuess, setUserGuess] = useState(initialSession.userGuess || '');
+  const [shuffledOptions, setShuffledOptions] = useState(
+    Array.isArray(initialSession.shuffledOptions) ? initialSession.shuffledOptions : []
+  );
+  const [guessFeedback, setGuessFeedback] = useState(initialSession.guessFeedback || null);
+  const [usedMultipleChoice, setUsedMultipleChoice] = useState(Boolean(initialSession.usedMultipleChoice));
 
-  // Score
-  const [score, setScore] = useState(0);
-  const [streak, setStreak] = useState(0);
-  const [bestStreak, setBestStreak] = useState(0);
+  // Score & Session History
+  const [score, setScore] = useState(Number(initialSession.score) || 0);
+  const [streak, setStreak] = useState(Number(initialSession.streak) || 0);
+  const [bestStreak, setBestStreak] = useState(Number(initialSession.bestStreak) || 0);
+  const [playedIds, setPlayedIds] = useState(
+    Array.isArray(initialSession.playedIds) ? initialSession.playedIds : []
+  );
 
   useEffect(() => {
     applyEraTheme(playlistEra);
   }, [playlistEra]);
+
+  // Persist session state across browser reloads
+  useEffect(() => {
+    saveSessionState(BLITZ_STORAGE_KEY, {
+      blitzSubMode,
+      playlistEra,
+      card,
+      clipSeconds,
+      hasPlayed5s,
+      hasUnlocked10s,
+      isAnswerRevealed,
+      userGuess,
+      shuffledOptions,
+      guessFeedback,
+      usedMultipleChoice,
+      score,
+      streak,
+      bestStreak,
+      playedIds
+    });
+  }, [
+    blitzSubMode,
+    playlistEra,
+    card,
+    clipSeconds,
+    hasPlayed5s,
+    hasUnlocked10s,
+    isAnswerRevealed,
+    userGuess,
+    shuffledOptions,
+    guessFeedback,
+    usedMultipleChoice,
+    score,
+    streak,
+    bestStreak,
+    playedIds
+  ]);
 
   const stopVisualizerLoop = () => {
     if (rafRef.current) {
@@ -121,7 +185,8 @@ export default function AudioBlitzMode() {
     setIsPlayingClip(false);
   };
 
-  const loadNextSong = async (excludeId = null) => {
+  const loadNextSong = async (excludeId = null, eraOverride = null) => {
+    const activeEra = eraOverride || playlistEra;
     stopAudio();
     setLoading(true);
     setError(null);
@@ -136,14 +201,21 @@ export default function AudioBlitzMode() {
     setAudioReady(false);
 
     try {
-      let url = `/api/trivia/next?era=${playlistEra}`;
+      let url = `/api/trivia/next?era=${activeEra}`;
       if (excludeId) url += `&excludeId=${excludeId}`;
+      const recentExcluded = playedIds.slice(-120);
+      if (recentExcluded.length > 0) {
+        url += `&excludeIds=${recentExcluded.join(',')}`;
+      }
       const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to load song');
       const data = await res.json();
       setCard(data.card);
 
       if (data.card) {
+        setPlayedIds((prev) =>
+          prev.includes(data.card.id) ? prev : [...prev.slice(-149), data.card.id]
+        );
         const options = [
           data.card.song_name,
           ...(Array.isArray(data.card.distractors) ? data.card.distractors : [])
@@ -161,9 +233,12 @@ export default function AudioBlitzMode() {
     }
   };
 
+  // Only fetch on initial mount if there was no saved card in session
   useEffect(() => {
-    loadNextSong();
-  }, [playlistEra]);
+    if (!card) {
+      loadNextSong();
+    }
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -371,8 +446,12 @@ export default function AudioBlitzMode() {
               role="tab"
               aria-selected={playlistEra === tab.id}
               onClick={() => {
+                if (playlistEra === tab.id) return;
                 sounds.playTick();
-                triggerViewTransition(() => setPlaylistEra(tab.id));
+                triggerViewTransition(() => {
+                  setPlaylistEra(tab.id);
+                  loadNextSong(card?.id, tab.id);
+                });
               }}
               className={`era-tab-btn ${playlistEra === tab.id ? 'active' : ''}`}
             >
