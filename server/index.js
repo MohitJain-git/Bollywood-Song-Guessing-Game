@@ -22,7 +22,8 @@ const {
   getApiKey,
   setApiKey,
   generateCardWithGemini,
-  generateFallbackCard
+  generateFallbackCard,
+  generateSmartHint
 } = require('./geminiService');
 
 const {
@@ -122,6 +123,22 @@ app.get('/api/trivia/next', async (req, res) => {
     res.json({ card });
   } catch (err) {
     console.error('[API] /api/trivia/next error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get AI Poetic Metaphor Decoder & Word-Pattern Hint for a card
+app.get('/api/trivia/smart-hint/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const card = getCardById(id);
+    if (!card) {
+      return res.status(404).json({ error: 'Card not found' });
+    }
+    const hint = await generateSmartHint(card);
+    res.json({ hint });
+  } catch (err) {
+    console.error('[API] /api/trivia/smart-hint error:', err);
     res.status(500).json({ error: err.message });
   }
 });

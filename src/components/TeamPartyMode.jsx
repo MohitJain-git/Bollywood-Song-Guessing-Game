@@ -8,6 +8,7 @@ import ClueCard from './ClueCard';
 import YouTubePlayer from './YouTubePlayer';
 import LyricalDecodedCard from './LyricalDecodedCard';
 import { sounds } from './SoundEffects';
+import { matchBollywoodSongGuess } from '../utils/gameTech';
 
 export default function TeamPartyMode() {
   const [teams, setTeams] = useState([
@@ -132,14 +133,9 @@ export default function TeamPartyMode() {
     return Math.max(20, Math.floor(calculatePoints() * 0.75));
   };
 
-  const normalize = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-
   const checkAnswerMatch = (guess) => {
     if (!card?.song_name) return false;
-    const cleanTarget = normalize(card.song_name);
-    const cleanGuess = normalize(guess);
-    if (!cleanGuess) return false;
-    return cleanGuess === cleanTarget || (cleanTarget.includes(cleanGuess) && cleanGuess.length >= 4);
+    return matchBollywoodSongGuess(guess, card.song_name).isMatch;
   };
 
   // When active team checks answer

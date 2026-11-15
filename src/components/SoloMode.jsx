@@ -1,10 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { Eye, ArrowRight, RotateCcw, CheckCircle2, XCircle, Sparkles, Trophy, Flame } from 'lucide-react';
+import {
+  Eye, ArrowRight, RotateCcw, CheckCircle2, XCircle,
+  Sparkles, Trophy, Flame, AlertTriangle, Film, Mic2, Calendar, Disc
+} from 'lucide-react';
 import ClueCard from './ClueCard';
 import YouTubePlayer from './YouTubePlayer';
 import LyricalDecodedCard from './LyricalDecodedCard';
 import { sounds } from './SoundEffects';
+import {
+  ERA_THEMES,
+  applyEraTheme,
+  matchBollywoodSongGuess,
+  triggerViewTransition
+} from '../utils/gameTech';
 
 export default function SoloMode({ onOpenSettings }) {
   const [selectedEra, setSelectedEra] = useState('all');
@@ -15,14 +24,23 @@ export default function SoloMode({ onOpenSettings }) {
   const [currentClueLevel, setCurrentClueLevel] = useState(1);
   const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
   const [userGuess, setUserGuess] = useState('');
-  const [guessFeedback, setGuessFeedback] = useState(null); // { correct: boolean, message: string }
+  const [guessFeedback, setGuessFeedback] = useState(null); // { status: 'correct'|'close'|'wrong', message: string }
   const [shuffledOptions, setShuffledOptions] = useState([]);
-  const [usedMultipleChoice, setUsedMultipleChoice] = useState(false); // Multiple Choice as Hint (Halves points)
+  const [usedMultipleChoice, setUsedMultipleChoice] = useState(false);
+
+  // AI Smart Hint / Shayari Decoder
+  const [smartHint, setSmartHint] = useState(null);
+  const [loadingSmartHint, setLoadingSmartHint] = useState(false);
 
   // Score state
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
+
+  // Apply dynamic era color theme
+  useEffect(() => {
+    applyEraTheme(selectedEra);
+  }, [selectedEra]);
 
   // Load new card
   const loadNextCard = async (excludeId = null) => {
@@ -33,6 +51,7 @@ export default function SoloMode({ onOpenSettings }) {
     setUserGuess('');
     setGuessFeedback(null);
     setUsedMultipleChoice(false);
+    setSmartHint(null);
 
     try {
       let url = `/api/trivia/next?era=${selectedEra}`;
@@ -42,13 +61,11 @@ export default function SoloMode({ onOpenSettings }) {
       const data = await res.json();
       setCard(data.card);
 
-      // Prepare multiple choice options
       if (data.card) {
         const options = [
           data.card.song_name,
           ...(Array.isArray(data.card.distractors) ? data.card.distractors : [])
         ];
-        // Shuffle options
         for (let i = options.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [options[i], options[j]] = [options[j], options[i]];
@@ -67,10 +84,31 @@ export default function SoloMode({ onOpenSettings }) {
     loadNextCard();
   }, [selectedEra]);
 
+  const handleRequestSmartHint = async () => {
+    if (!card?.id || smartHint || loadingSmartHint) return;
+    sounds.playTick();
+    setLoadingSmartHint(true);
+    try {
+      const res = await fetch(`/api/trivia/smart-hint/${card.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        triggerViewTransition(() => {
+          setSmartHint(data.hint);
+        });
+      }
+    } catch (e) {
+      console.warn('Smart hint fetch failed:', e);
+    } finally {
+      setLoadingSmartHint(false);
+    }
+  };
+
   const handleRevealNextClue = () => {
     if (currentClueLevel < 5) {
       sounds.playTick();
-      setCurrentClueLevel(prev => prev + 1);
+      triggerViewTransition(() => {
+        setCurrentClueLevel((prev) => prev + 1);
+      });
     }
   };
 
@@ -93,24 +131,26 @@ export default function SoloMode({ onOpenSettings }) {
   const handleCorrectGuess = (pointsEarned) => {
     sounds.playCorrect();
     confetti({
-      particleCount: 80,
-      spread: 70,
-      origin: { y: 0.6 }
+      particleCount: 95,
+      spread: 80,
+      origin: { y: 0.6 },
+      colors: ['#fbbf24', '#f43f5e', '#34d399', '#c084fc']
     });
 
     const newStreak = streak + 1;
     setStreak(newStreak);
     if (newStreak > bestStreak) setBestStreak(newStreak);
-    setScore(prev => prev + pointsEarned);
+    setScore((prev) => prev + pointsEarned);
 
-    setGuessFeedback({
-      correct: true,
-      message: `🎉 Kya Baat Hai! Correct! +${pointsEarned} points!`
-    });
-    setIsAnswerRevealed(true);
-    setCurrentClueLevel(5);
+    triggerViewTransition(() => {
+      setGuessFeedback({
+        status: 'correct',
+        message: `🎉 Kya Baat Hai! Spot on! +${pointsEarned} PTS added to your score!`
+      });
+      setIsAnswerRevealed(true);
+      setCurrentClueLevel(5);
+    }, '#revealed-song-heading');
 
-    // Record in DB
     if (card?.id) {
       fetch('/api/trivia/record', {
         method: 'POST',
@@ -120,12 +160,20 @@ export default function SoloMode({ onOpenSettings }) {
     }
   };
 
+  const handleCloseGuess = () => {
+    sounds.playTick();
+    setGuessFeedback({
+      status: 'close',
+      message: '🔥 Bohot Kareeb! You are just a couple letters off — check your spelling and hit Submit!'
+    });
+  };
+
   const handleWrongGuess = () => {
     sounds.playWrong();
     setStreak(0);
     setGuessFeedback({
-      correct: false,
-      message: '❌ Not quite! Check another clue or try again!'
+      status: 'wrong',
+      message: '❌ Not quite! Unlock the next clue, decode the word pattern, or try again!'
     });
   };
 
@@ -142,13 +190,11 @@ export default function SoloMode({ onOpenSettings }) {
     e.preventDefault();
     if (!userGuess.trim() || isAnswerRevealed) return;
 
-    const normalize = str => str.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const cleanTarget = normalize(card.song_name);
-    const cleanGuess = normalize(userGuess);
-
-    // Exact or near match
-    if (cleanGuess === cleanTarget || cleanTarget.includes(cleanGuess) && cleanGuess.length > 4) {
+    const result = matchBollywoodSongGuess(userGuess, card.song_name);
+    if (result.isMatch) {
       handleCorrectGuess(calculatePoints());
+    } else if (result.isClose) {
+      handleCloseGuess();
     } else {
       handleWrongGuess();
     }
@@ -156,13 +202,15 @@ export default function SoloMode({ onOpenSettings }) {
 
   const handleDirectReveal = () => {
     sounds.playTick();
-    setIsAnswerRevealed(true);
-    setCurrentClueLevel(5);
-    setStreak(0);
-    setGuessFeedback({
-      correct: false,
-      message: `Revealed! The song is "${card.song_name}"`
-    });
+    triggerViewTransition(() => {
+      setIsAnswerRevealed(true);
+      setCurrentClueLevel(5);
+      setStreak(0);
+      setGuessFeedback({
+        status: 'wrong',
+        message: `Curtain raised! The track is "${card.song_name}"`
+      });
+    }, '#revealed-song-heading');
 
     if (card?.id) {
       fetch('/api/trivia/record', {
@@ -173,16 +221,18 @@ export default function SoloMode({ onOpenSettings }) {
     }
   };
 
+  const activeEraMeta = ERA_THEMES[selectedEra] || ERA_THEMES.all;
+
   return (
     <div className="solo-container">
       {/* Top Banner Stats */}
       <div className="stats-bar">
         <div className="stat-pill score-pill">
-          <Trophy size={16} className="text-amber-400" />
+          <Trophy size={16} className="text-amber-400" aria-hidden="true" />
           <span>Score: <strong>{score}</strong></span>
         </div>
         <div className="stat-pill streak-pill">
-          <Flame size={16} className={streak > 0 ? 'text-orange-500 animate-pulse' : 'text-zinc-500'} />
+          <Flame size={16} className={streak > 0 ? 'text-orange-500 animate-pulse' : 'text-zinc-500'} aria-hidden="true" />
           <span>Streak: <strong>{streak}</strong></span>
         </div>
         {bestStreak > 0 && (
@@ -192,30 +242,39 @@ export default function SoloMode({ onOpenSettings }) {
         )}
       </div>
 
-      {/* Era Selector Filter */}
-      <div className="era-filter-tabs">
-        {[
-          { id: 'all', label: '🌟 All Eras' },
-          { id: '2000s', label: '🎧 2000s Golden' },
-          { id: '2010s', label: '🔥 2010s Hits' },
-          { id: '2020s', label: '✨ 2020s Trending' },
-          { id: '90s', label: '📼 90s Nostalgia' }
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setSelectedEra(tab.id)}
-            className={`era-tab-btn ${selectedEra === tab.id ? 'active' : ''}`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Era Selector Filter with Ambient Theme Shifting */}
+      <div className="era-selector-block">
+        <div className="era-filter-tabs" role="tablist" aria-label="Filter songs by Bollywood era">
+          {[
+            { id: 'all', label: '🌟 All Eras' },
+            { id: 'Classics', label: '📻 Classics' },
+            { id: '90s', label: '📼 90s Nostalgia' },
+            { id: '2000s', label: '🎧 2000s Golden' },
+            { id: '2010s', label: '🔥 2010s Hits' },
+            { id: '2020s', label: '✨ 2020s Trending' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              role="tab"
+              aria-selected={selectedEra === tab.id}
+              onClick={() => {
+                sounds.playTick();
+                triggerViewTransition(() => setSelectedEra(tab.id));
+              }}
+              className={`era-tab-btn ${selectedEra === tab.id ? 'active' : ''}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <p className="era-tagline">{activeEraMeta.tagline}</p>
       </div>
 
       {/* Card Loading / Error */}
       {loading && (
         <div className="game-loading-state">
           <div className="spinner"></div>
-          <p>🎧 Finding the next Bollywood lyrical puzzle...</p>
+          <p>🎧 Curating your next Bollywood lyrical riddle...</p>
         </div>
       )}
 
@@ -223,7 +282,7 @@ export default function SoloMode({ onOpenSettings }) {
         <div className="error-card">
           <p>⚠️ {error}</p>
           <button onClick={() => loadNextCard()} className="btn btn-primary mt-2">
-            <RotateCcw size={16} />
+            <RotateCcw size={16} aria-hidden="true" />
             <span>Try Again</span>
           </button>
         </div>
@@ -232,25 +291,40 @@ export default function SoloMode({ onOpenSettings }) {
       {/* Main Game Screen */}
       {!loading && card && (
         <div className="game-play-area">
-          {/* Lyrical Clues */}
+          {/* Lyrical Clues & AI Shayari Decoder */}
           <ClueCard
             card={card}
             currentClueLevel={currentClueLevel}
             onRevealNextClue={handleRevealNextClue}
             isAnswerRevealed={isAnswerRevealed}
+            smartHint={smartHint}
+            onRequestSmartHint={handleRequestSmartHint}
+            loadingSmartHint={loadingSmartHint}
           />
 
-          {/* Feedback Banner */}
+          {/* Accessible Feedback Banner (Uses Icon + Text + Color per WCAG 1.4.1) */}
           {guessFeedback && (
-            <div className={`feedback-alert ${guessFeedback.correct ? 'feedback-success' : 'feedback-error'} animate-pop`}>
-              {guessFeedback.correct ? <CheckCircle2 size={20} /> : <XCircle size={20} />}
+            <div
+              role="status"
+              aria-live="polite"
+              className={`feedback-alert ${
+                guessFeedback.status === 'correct'
+                  ? 'feedback-success'
+                  : guessFeedback.status === 'close'
+                  ? 'feedback-warning'
+                  : 'feedback-error'
+              } animate-pop`}
+            >
+              {guessFeedback.status === 'correct' && <CheckCircle2 size={20} aria-hidden="true" />}
+              {guessFeedback.status === 'close' && <AlertTriangle size={20} aria-hidden="true" />}
+              {guessFeedback.status === 'wrong' && <XCircle size={20} aria-hidden="true" />}
               <span>{guessFeedback.message}</span>
             </div>
           )}
 
-          {/* Interactive Guessing Controls: Type for Full Points OR Reveal Choices as Hint for Half Points */}
+          {/* Interactive Guessing Controls */}
           {!isAnswerRevealed ? (
-            <div className="guess-section animate-fade-in">
+            <div className="guess-section clue-entry-anim">
               <form onSubmit={handleTextGuessSubmit} className="text-guess-form">
                 <input
                   type="text"
@@ -258,9 +332,10 @@ export default function SoloMode({ onOpenSettings }) {
                   onChange={(e) => setUserGuess(e.target.value)}
                   placeholder={
                     usedMultipleChoice
-                      ? `Type song name or pick from choices below (+${calculatePoints()} PTS)...`
-                      : `Type song name for FULL POINTS (+${calculatePoints()} PTS)...`
+                      ? `Type song title or choose below (+${calculatePoints()} PTS)...`
+                      : `Type Bollywood song title for FULL POINTS (+${calculatePoints()} PTS)...`
                   }
+                  aria-label="Type your Bollywood song guess"
                   className="guess-input"
                   autoFocus
                 />
@@ -276,19 +351,19 @@ export default function SoloMode({ onOpenSettings }) {
                     type="button"
                     onClick={() => {
                       sounds.playTick();
-                      setUsedMultipleChoice(true);
+                      triggerViewTransition(() => setUsedMultipleChoice(true));
                     }}
                     className="btn-hint-outline"
                   >
-                    <Sparkles size={16} />
-                    <span>💡 Need a hint? Reveal 4 Choices (Half Points: {Math.floor(calculatePoints() / 2)} PTS)</span>
+                    <Sparkles size={16} aria-hidden="true" />
+                    <span>💡 Need Options? Reveal 4 Multiple-Choice Options (Half Points: {Math.floor(calculatePoints() / 2)} PTS)</span>
                   </button>
                 </div>
               ) : (
-                <div className="open-choices-section animate-scale-up mt-3">
+                <div className="open-choices-section clue-entry-anim mt-3">
                   <div className="open-choices-header">
                     <span className="open-choices-title">
-                      🎯 Multiple Choice Hint Active — Pick your song for {calculatePoints()} PTS:
+                      🎯 Multiple Choice Lifeline Active — Select the right track for {calculatePoints()} PTS:
                     </span>
                   </div>
 
@@ -296,6 +371,7 @@ export default function SoloMode({ onOpenSettings }) {
                     {shuffledOptions.map((option, idx) => (
                       <button
                         key={idx}
+                        type="button"
                         onClick={() => handleOptionClick(option)}
                         className="option-card-btn"
                       >
@@ -310,40 +386,53 @@ export default function SoloMode({ onOpenSettings }) {
               {/* Reveal answer button */}
               <div className="reveal-bar">
                 <button
+                  type="button"
                   onClick={handleDirectReveal}
                   className="btn btn-ghost"
                 >
-                  <Eye size={16} />
-                  <span>Give Up & Reveal Answer</span>
+                  <Eye size={16} aria-hidden="true" />
+                  <span>Give Up & Reveal Song</span>
                 </button>
               </div>
             </div>
           ) : (
             /* REVEALED ANSWER & YOUTUBE PLAYER */
-            <div className="answer-card-revealed animate-scale-up">
+            <div className="answer-card-revealed clue-entry-anim">
               <div className="answer-header">
-                <div className="song-badge">🎉 Target Bollywood Track</div>
-                <h2 className="song-title-highlight">{card.song_name}</h2>
+                <div className="song-badge">🎉 Bollywood Track Revealed</div>
+                <h2
+                  id="revealed-song-heading"
+                  tabIndex={-1}
+                  className="song-title-highlight"
+                >
+                  {card.song_name}
+                </h2>
                 <div className="movie-details">
-                  <span>🎬 <strong>{card.movie_name}</strong></span>
+                  <span><Film size={14} className="inline mr-1 text-purple-400" aria-hidden="true" /><strong>{card.movie_name}</strong></span>
                   <span>•</span>
-                  <span>🎤 <strong>{card.artist}</strong></span>
+                  <span><Mic2 size={14} className="inline mr-1 text-amber-400" aria-hidden="true" /><strong>{card.artist}</strong></span>
                   <span>•</span>
-                  <span>🗓️ <strong>{card.release_year}</strong></span>
+                  <span><Calendar size={14} className="inline mr-1 text-blue-400" aria-hidden="true" /><strong>{card.release_year}</strong></span>
+                  {card.era && (
+                    <>
+                      <span>•</span>
+                      <span><Disc size={14} className="inline mr-1 text-rose-400" aria-hidden="true" /><em>{card.era}</em></span>
+                    </>
+                  )}
                 </div>
               </div>
 
-              {/* Lyrical Riddles Decoded (Clue 1 & Clue 2 mapped to Hindi) */}
+              {/* Lyrical Riddles Decoded (Clue 1 & Clue 2 mapped 1:1 to Hindi) */}
               <LyricalDecodedCard card={card} />
 
               {card.fun_fact && (
                 <div className="trivia-fact-box">
-                  <span className="fact-badge">✨ Bollywood Trivia Fact</span>
+                  <span className="fact-badge">✨ Behind-the-Scenes Trivia</span>
                   <p>{card.fun_fact}</p>
                 </div>
               )}
 
-              {/* In-App Dual Media Player (YouTube + Spotify + Local Audio) */}
+              {/* In-App Dual Media Player */}
               <YouTubePlayer
                 videoId={card.youtube_video_id}
                 searchQuery={card.youtube_search_query}
@@ -357,11 +446,12 @@ export default function SoloMode({ onOpenSettings }) {
               {/* Next Round Action */}
               <div className="next-round-bar">
                 <button
+                  type="button"
                   onClick={() => loadNextCard(card.id)}
                   className="btn btn-primary next-song-btn"
                 >
                   <span>Play Next Bollywood Song</span>
-                  <ArrowRight size={18} />
+                  <ArrowRight size={18} aria-hidden="true" />
                 </button>
               </div>
             </div>
