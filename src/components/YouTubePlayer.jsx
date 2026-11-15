@@ -15,11 +15,67 @@ export default function YouTubePlayer({
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const audioRef = useRef(null);
 
-  // Known video intro bumper offsets (e.g., Hai Rama channel advert ends at 13s)
+  // Known video intro bumper offsets (Saregama Music, Tips Official, Universal, Ishtar, Rajshri, etc.)
   const VIDEO_START_OFFSETS = {
-    '11v9ALkOiio': 13
+    // Tips Official (10-15s channel subscribe promos)
+    'JBCx0QyP8VQ': 13, // Pehli Nazar Mein
+    'SqZbGOCuai4': 11, // Ishq Bina
+    'onfy6y07ujQ': 11, // Ramta Jogi
+    'Q1_WRkS5O6s': 10, // Tanha Tanha
+    'zGaTGeFmd8U': 11, // Rangeela Re
+    '11v9ALkOiio': 15, // Hai Rama
+
+    // Saregama Music (5-13s Saregama / Carvaan intro bumpers)
+    'a71xD6RyOok': 5,  // Zara Zara
+    'hUVjx_RhMl0': 6,  // Sach Keh Raha Hai
+    '0VX7xIvqJRk': 6,  // Tauba Tauba
+    'yBYbfMeJvHA': 6,  // What Jhumka?
+    'mHdneo9_yLM': 5,  // Tum Kya Mile
+    'Pz_FkqA2x6s': 6,  // Ve Kamleya
+    'nFmSK6eSINU': 6,  // Kudmayi
+    'oHJ0Et1ob2c': 7,  // Dhindhora Baje Re
+    '_hKJEqxn_OU': 6,  // Tujhe Dekha Toh
+    'Ki41AKu0iHc': 7,  // Pehla Nasha
+    'HttdS70G_3o': 5,  // Didi Tera Devar Deewana
+    'KXkmrco12hI': 6,  // Pehla Pehla Pyar
+    's_fdQXXDSLw': 6,  // Jadu Teri Nazar
+    'Oj484P4OXD8': 7,  // Tu Mere Samne
+    'wKQVoA9UVEQ': 5,  // Roop Tera Mastana
+    'br6C4U3Dyfo': 6,  // Lag Ja Gale
+    'g_O5lttb5ww': 13, // Kabhi Kabhie Mere Dil Mein
+    'EiUDYzqdz2U': 8,  // Tere Bina Zindagi Se
+    'RbSuFhzPgN8': 5,  // Tum Aa Gaye Ho Noor Aa Gaya
+    'GUn3P5QyLRY': 5,  // Dum Maro Dum
+    '5eyflIV8pzM': 6,  // O Mere Dil Ke Chain
+    'qJy5GFoQSPg': 7,  // Dekha Ek Khwaab
+    'q3IHX5ASUa4': 8,  // Rang Barse Bheege Chunarwali
+    'BF5tVDJCAUM': 8,  // Om Shanti Om (Karz)
+    '0iN6O3-8mLY': 5,  // Ek Hasina Thi
+    'W6dKaCV-mJQ': 5,  // Kya Hua Tera Wada
+    'zgcW44Id114': 10, // Bachna Ae Haseeno (1977)
+    'd-0t_MOu-WM': 5,  // Ek Ladki Ko Dekha Toh
+    'lfJKW2lmQTQ': 6,  // Rimjhim Gire Sawan
+    'jsy5f55MAP0': 6,  // Pyar Deewana Hota Hai
+    'AU-hut9lGQ4': 5,  // Ajeeb Dastaan Hai Yeh
+
+    // Universal, Ishtar, Rajshri, YRF, Sony, T-Series, Zee intro bumpers
+    '2uUmHTgT65I': 9,  // Dhoom Machale
+    'hFhxuGMEMxg': 5,  // Chor Bazaari
+    'qtRzUdBwM5E': 7,  // Genda Phool
+    'ztPa6vkM-yY': 19, // Guzarish
+    'sVRwZEkXepg': 37, // Hamari Adhuri Kahani
+    '-sWXx1mbgtU': 6,  // Kar Gayi Chull
+    'QcQpqWhTBCE': 8,  // Chikni Chameli
+    'oJVVAf5kLEY': 26, // Sauda Khara Khara
+    'RLzC55ai0eo': 6,  // Heeriye
+    'tABlzTH8G9o': 6,  // Saari Duniya Jalaa Denge
+    '9yGukg6SSZ4': 37, // Chaiyya Chaiyya
+    '_YB1taxJPgk': 13, // Kehna Hi Kya
+    'waTwDgK2tkk': 14, // Tu Hi Re
+    'EK00yMk9sKc': 11, // Kaate Nahi Kat Te
+    'XINI9JtypMw': 5   // Mere Samne Wali Khidki Mein
   };
-  const startOffset = VIDEO_START_OFFSETS[videoId] || (songName === 'Hai Rama' ? 13 : 0);
+  const startOffset = VIDEO_START_OFFSETS[videoId] || 0;
 
   // Generate hyper-accurate YouTube search query & direct video URL
   const primarySinger = artist ? artist.split(',')[0].split(';')[0].trim() : '';
