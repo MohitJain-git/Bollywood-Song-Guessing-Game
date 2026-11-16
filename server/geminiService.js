@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
+const { translateHinglishVerseLiterally } = require('./literalTranslator');
 
 const ENV_PATH = path.resolve(__dirname, '..', '.env');
 dotenv.config({ path: ENV_PATH });
@@ -152,8 +153,8 @@ Your role is to craft deeply authentic, 1-to-1 logically accurate, and poetic Bo
 
 STRICT GOLDEN RULES:
 1. ZERO SPOILERS IN RIDDLES: Never mention the song title in Hindi, never mention the movie name, and never mention actor names inside "english_riddle_1" or "english_riddle_2".
-2. PURE LYRICAL TRANSLATION: "english_riddle_1" MUST be a faithful, line-by-line poetic English translation of the iconic Chorus (Mukhda) found in "hinglish_lyrics_1". Every Hindi metaphor (like chand, noor, dhadkan, saawan, fanaa, dil) must map logically to its English counterpart so players can deduce the Hindi words from the English poetry!
-3. VERSE FIDELITY: "english_riddle_2" MUST be a faithful, evocative English translation of the famous Verse (Antara) in "hinglish_lyrics_2".
+2. PURE LYRICAL HOOK RIDDLE: "english_riddle_1" MUST be a faithful, poetic riddle-style English translation of the iconic Chorus (Mukhda) found in "hinglish_lyrics_1".
+3. DIRECT WORD-FOR-WORD VERSE TRANSLATION: "english_riddle_2" MUST NOT be a riddle! Instead, it MUST be a strict, direct word-by-word translation of each Hindi word in "hinglish_lyrics_2" into English in the exact Hindi word order (even if the English grammar sounds broken or literal), so a player thinking in direct word-by-word Hindi-to-English translations can map the exact words back to the Hindi verse lyrics!
 4. CINEMATIC SCENE WITHOUT SPOILERS: "actor_visual_clue" must paint the exact iconic visual frame (costumes, setting, choreography, weather, emotional tension, lead actors' screen dynamic) WITHOUT naming the song or movie title.
 5. DEEP MUSICALITY: "music_director_clue" must highlight the composer/music director, signature instruments (e.g., santoor, sarangi, acoustic guitar, dholak, synth), raga or genre (Sufi qawwali, retro disco, monsoon ballad), and vocalists.
 6. ROMANIZED HINGLISH ONLY: "hinglish_lyrics_1" and "hinglish_lyrics_2" must use clean Roman alphabet (never Devanagari script).`;
@@ -167,7 +168,7 @@ const CARD_RESPONSE_SCHEMA = {
     },
     english_riddle_2: {
       type: 'STRING',
-      description: 'Faithful, expressive English translation of a famous Verse/Antara matching hinglish_lyrics_2.'
+      description: 'Direct, literal word-for-word English translation of each Hindi word in hinglish_lyrics_2 in the exact Hindi word order (even if grammatically broken).'
     },
     hinglish_lyrics_1: {
       type: 'STRING',
@@ -284,7 +285,9 @@ VERIFICATION CHECKLIST BEFORE RESPONDING:
           era: song.era || '2000s',
           release_year: song.release_year,
           english_riddle_1: parsed.english_riddle_1,
-          english_riddle_2: parsed.english_riddle_2 || '',
+          english_riddle_2: parsed.hinglish_lyrics_2
+            ? translateHinglishVerseLiterally(parsed.hinglish_lyrics_2)
+            : parsed.english_riddle_2 || '',
           hinglish_lyrics_1: parsed.hinglish_lyrics_1,
           hinglish_lyrics_2: parsed.hinglish_lyrics_2 || '',
           actor_visual_clue: parsed.actor_visual_clue || '',
@@ -375,7 +378,7 @@ function generateFallbackCard(song) {
     era: era,
     release_year: year,
     english_riddle_1: `My heart whispers an unspoken vow across the silence of the night, asking you to stay before the fleeting moment turns into a memory.`,
-    english_riddle_2: `Every step along this winding path carries the fragrance of your presence, turning ordinary breaths into a timeless melody.`,
+    english_riddle_2: translateHinglishVerseLiterally(`Har kadam par tera hi ehsaas gehra hai`),
     hinglish_lyrics_1: `Dil ki raahon mein teri yaadon ka basera hai`,
     hinglish_lyrics_2: `Har kadam par tera hi ehsaas gehra hai`,
     actor_visual_clue: `An unforgettable cinematic sequence from a ${year} release featuring evocative lighting and expressive choreography.`,

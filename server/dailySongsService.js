@@ -8,6 +8,7 @@ const {
   getApiKey,
   generateCardWithGemini
 } = require('./geminiService');
+const { translateHinglishVerseLiterally } = require('./literalTranslator');
 
 // Pre-curated pool of the latest 2024-2026 Bollywood chartbusters with verified 1:1 English riddles & Hinglish lyrics
 // Used alongside live iTunes India Chart API discovery so daily drops always have authentic poetic translations
@@ -282,6 +283,9 @@ async function syncDailyLatestSongs(count = 10) {
     const previewUrl = await fetchItunesPreviewUrl(item.song_name, item.artist);
     const cardToInsert = {
       ...item,
+      english_riddle_2: item.hinglish_lyrics_2
+        ? translateHinglishVerseLiterally(item.hinglish_lyrics_2)
+        : item.english_riddle_2,
       preview_url: previewUrl || item.preview_url || '',
       is_daily_latest: true,
       added_date: todayStr
@@ -321,7 +325,7 @@ async function syncDailyLatestSongs(count = 10) {
           era: '2020s',
           release_year: candidate.release_year || 2025,
           english_riddle_1: `My heart beats to a new rhythm every time your eyes meet mine, turning a fleeting glance into an unforgettable melody.`,
-          english_riddle_2: `Even in a crowded world, your voice is the only refrain my soul wishes to hear tonight.`,
+          english_riddle_2: translateHinglishVerseLiterally(`Har lamha tera hi ehsaas hai, tu hi meri har aas hai`),
           hinglish_lyrics_1: `Teri aankhon mein jo jaadu hai, mera dil ab bekaboo hai`,
           hinglish_lyrics_2: `Har lamha tera hi ehsaas hai, tu hi meri har aas hai`,
           actor_visual_clue: `A vibrant ${candidate.release_year} Bollywood musical sequence from "${candidate.movie_name}" featuring chart-topping choreography.`,

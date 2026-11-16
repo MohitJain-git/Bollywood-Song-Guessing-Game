@@ -3,7 +3,7 @@ import { Sparkles, Film, Music, ChevronDown, BookOpen, Compass, KeyRound } from 
 
 const CLUE_STEPS = [
   { level: 1, label: 'Hook Riddle', pts: 100 },
-  { level: 2, label: 'Verse Riddle', pts: 80 },
+  { level: 2, label: 'Direct Verse', pts: 80 },
   { level: 3, label: 'Cinema Frame', pts: 60 },
   { level: 4, label: 'Maestro & Era', pts: 40 },
   { level: 5, label: 'Hinglish Lyrics', pts: 20 }
@@ -59,19 +59,22 @@ export default function ClueCard({
         </div>
       </div>
 
-      {/* Clue 2: English Verse (Antara) */}
+      {/* Clue 2: Direct Word-for-Word English Verse Translation (Antara) */}
       {currentClueLevel >= 2 && card.english_riddle_2 && (
         <div className="clue-box secondary-clue clue-entry-anim">
           <div className="clue-header">
             <span className="clue-badge blue">
               <BookOpen size={14} aria-hidden="true" />
-              <span>Clue 2 • The Verse in English (Antara)</span>
+              <span>Clue 2 • Direct Word-for-Word Verse Translation</span>
             </span>
             <span className="clue-pts-pill blue-pill">80 PTS</span>
           </div>
           <blockquote className="clue-text-riddle">
             “{card.english_riddle_2}”
           </blockquote>
+          <div className="clue-subtle-caption">
+            <span>🔤 Literal word-by-word Hindi → English translation of the verse (in exact Hindi word order)</span>
+          </div>
         </div>
       )}
 
@@ -170,7 +173,7 @@ export default function ClueCard({
               <ChevronDown size={18} aria-hidden="true" />
               <span>
                 Unlock Clue {currentClueLevel + 1}{' '}
-                {currentClueLevel === 1 && '• Verse in English (80 Pts)'}
+                {currentClueLevel === 1 && '• Direct Word-for-Word Verse Translation (80 Pts)'}
                 {currentClueLevel === 2 && '• Cinema Frame & Stars (60 Pts)'}
                 {currentClueLevel === 3 && '• Maestro & Era (40 Pts)'}
                 {currentClueLevel === 4 && '• Original Hinglish Lyrics (20 Pts)'}

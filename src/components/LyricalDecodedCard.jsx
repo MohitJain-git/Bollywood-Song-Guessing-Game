@@ -52,12 +52,12 @@ export default function LyricalDecodedCard({ card }) {
           <div className="decoded-pair-box mt-3">
             <div className="pair-badge verse-badge">
               <BookOpen size={14} />
-              <span>Clue 2 (The Verse / Antara)</span>
+              <span>Clue 2 (Direct Word-for-Word Verse Translation)</span>
             </div>
 
             <div className="comparison-flow">
               <div className="comparison-panel english-panel">
-                <span className="panel-tag">English Verse Clue:</span>
+                <span className="panel-tag">Direct Word-by-Word Verse Clue:</span>
                 <p className="panel-quote">"{card.english_riddle_2}"</p>
               </div>
 

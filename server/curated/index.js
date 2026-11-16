@@ -5,6 +5,7 @@ const g4 = require('./group4_2020s_trends');
 const g5 = require('./group5_90s_nostalgia');
 const g6 = require('./group6_evergreen_legends');
 const verifiedYoutubeIds = require('./verified_youtube_ids.json');
+const { translateHinglishVerseLiterally } = require('../literalTranslator');
 
 const RAW_210_SONGS = [...g1, ...g2, ...g3, ...g4, ...g5, ...g6];
 
@@ -13,6 +14,9 @@ const CURATED_210_SONGS = RAW_210_SONGS.map((song, idx) => {
   return {
     ...song,
     id: idx + 1,
+    english_riddle_2: song.hinglish_lyrics_2
+      ? translateHinglishVerseLiterally(song.hinglish_lyrics_2)
+      : song.english_riddle_2,
     youtube_video_id:
       verified && verified.verified_yt_id
         ? verified.verified_yt_id

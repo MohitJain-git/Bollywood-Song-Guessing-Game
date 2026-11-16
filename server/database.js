@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { CURATED_210_SONGS } = require('./curated');
 const { SEED_TRIVIA_CARDS } = require('./seedData');
+const { translateHinglishVerseLiterally } = require('./literalTranslator');
 
 const BASE_DIR = path.resolve(__dirname, '..');
 let db = null;
@@ -299,6 +300,19 @@ function initDatabase() {
         );
       }
       console.log('[DB] Curated cards synchronized (IDs 1..210).');
+    }
+
+    // Ensure all cards in trivia_cards have direct word-for-word literal translations in english_riddle_2
+    const checkCard1 = db.prepare('SELECT english_riddle_2 FROM trivia_cards WHERE id = 1').get();
+    if (checkCard1 && checkCard1.english_riddle_2 !== CURATED_210_SONGS[0].english_riddle_2) {
+      const allCards = db.prepare('SELECT id, hinglish_lyrics_2 FROM trivia_cards').all();
+      const updateStmt = db.prepare('UPDATE trivia_cards SET english_riddle_2 = ? WHERE id = ?');
+      for (const row of allCards) {
+        if (row.hinglish_lyrics_2) {
+          updateStmt.run(translateHinglishVerseLiterally(row.hinglish_lyrics_2), row.id);
+        }
+      }
+      console.log(`[DB] Updated ${allCards.length} cards with direct word-for-word English verse translations.`);
     }
   } catch (err) {
     console.warn('[DB] Failed to run schema migration on SQLite; falling back to In-Memory Catalog:', err.message);
