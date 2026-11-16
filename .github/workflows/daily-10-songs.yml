@@ -16,16 +16,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 22+ (with built-in node:sqlite)
+      - name: Setup Node.js 22.12+ (with built-in node:sqlite)
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '22.12.0'
 
       - name: Install ffmpeg for 15s studio MP3 clip extraction
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Sync 10 latest Bollywood songs & extract studio audio clips
         env:
@@ -36,7 +36,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add server/bollywood_game.db public/audio_clips/
+          git add server/bollywood_game.db server/curated/daily_synced_songs.json public/audio_clips/
           if git diff --staged --quiet; then
             echo "No new songs needed today."
           else

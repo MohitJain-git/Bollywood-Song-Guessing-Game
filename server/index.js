@@ -124,11 +124,7 @@ app.get('/api/trivia/next', async (req, res) => {
           .slice(-150)
       : [];
 
-    if (era === 'latest') {
-      await ensureDailyLatestSongs();
-    } else {
-      ensureDailyLatestSongs().catch(() => {});
-    }
+    await ensureDailyLatestSongs();
 
     let card = getTriviaCard({ era, excludeId, excludeIds });
 
@@ -252,8 +248,9 @@ app.get('/api/cron/daily-songs', async (req, res) => {
 });
 
 // Database stats
-app.get('/api/stats', (req, res) => {
+app.get('/api/stats', async (req, res) => {
   try {
+    await ensureDailyLatestSongs();
     const stats = getDatabaseStats();
     res.json({
       ...stats,

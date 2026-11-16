@@ -1,14 +1,19 @@
+const fs = require('fs');
+const path = require('path');
 const {
   getDatabaseStats,
   insertTriviaCard,
   getAllSongNames,
-  getTodayAddedCount
+  getTodayAddedCount,
+  getDailyLatestSongs
 } = require('./database');
 const {
   getApiKey,
   generateCardWithGemini
 } = require('./geminiService');
 const { translateHinglishVerseLiterally } = require('./literalTranslator');
+
+const DAILY_JSON_PATH = path.resolve(__dirname, 'curated', 'daily_synced_songs.json');
 
 // Pre-curated pool of the latest 2024-2026 Bollywood chartbusters with verified 1:1 English riddles & Hinglish lyrics
 // Used alongside live iTunes India Chart API discovery so daily drops always have authentic poetic translations
@@ -20,7 +25,6 @@ const LATEST_BOLLYWOOD_POOL = [
     era: '2020s',
     release_year: 2024,
     english_riddle_1: 'Tonight it is impossible to find any sleep in my eyes; with just one glance, my heart has slipped out of my control.',
-    english_riddle_2: 'Even if this evening is brief, let the enchantment linger in the air while the whole town watches in a trance.',
     hinglish_lyrics_1: 'Aaj ki raat maza husn ka aankhon se lijiye, waqt barbaad na bin baat ki baaton mein kijiye',
     hinglish_lyrics_2: 'Thoda sa pyaar hua hai, thoda hai baaki, hum toh dil de hi chuke, bas teri haan hai baaki',
     actor_visual_clue: 'Tamannaah Bhatia performs a hypnotic dance in a crimson outfit amidst glowing lanterns in a foggy courtyard while Rajkummar Rao and Abhishek Banerjee watch spellbound.',
@@ -36,7 +40,6 @@ const LATEST_BOLLYWOOD_POOL = [
     era: '2020s',
     release_year: 2024,
     english_riddle_1: 'No one has ever looked as breathtaking as you do right now; even the moon seems ordinary beside your radiance.',
-    english_riddle_2: 'My eyes refuse to blink whenever you walk past, as if every verse of beauty was written just for your face.',
     hinglish_lyrics_1: 'Koi itna khoobsurat kaise ho sakta hai, dekhein jab tujhko toh dil dhadakta hai',
     hinglish_lyrics_2: 'Teri zulfein, teri aankhein, tera chehra kamaal hai, tujhse milke hi toh badla mera haal hai',
     actor_visual_clue: 'Varun Dhawan makes a surprise cameo alongside Shraddha Kapoor and Rajkummar Rao in a playful, romantic street celebration.',
@@ -52,7 +55,6 @@ const LATEST_BOLLYWOOD_POOL = [
     era: '2020s',
     release_year: 2024,
     english_riddle_1: 'Your rose-tinted eyes have cast a sweet intoxication over my senses, turning every quiet night into a celebration.',
-    english_riddle_2: 'When you smile beneath the moonlight, my wandering thoughts find their only home in your gaze.',
     hinglish_lyrics_1: 'Teri akhiyaan gulaab, ki jaane mera khwaab, tera husn lajawaab, tu hi mera mahtaab',
     hinglish_lyrics_2: 'Dekhoon tujhe toh dil mera kho jaaye, bin bole hi saari baatein ho jaayein',
     actor_visual_clue: 'Shahid Kapoor and Kriti Sanon groove effortlessly in sleek resort wear on a breezy beachside deck at twilight.',
@@ -68,12 +70,11 @@ const LATEST_BOLLYWOOD_POOL = [
     era: '2020s',
     release_year: 2024,
     english_riddle_1: 'When I saw you for the very first time, my heart began to race and tears of pure joy welled up in my eyes.',
-    english_riddle_2: 'I asked the heavens what I did to deserve your love, for my world has blossomed like spring since you arrived.',
     hinglish_lyrics_1: 'Dekhha tenu pehli pehli baar ve, hone laga dil bekaraar ve, rabba mainu ki ho gaya',
     hinglish_lyrics_2: 'Dil jaaniye, mainu ki ho gaya, teri baahon mein aake main kho gaya',
     actor_visual_clue: 'Rajkummar Rao and Janhvi Kapoor share tender newlywed moments amidst traditional wedding festivities in Jaipur.',
     music_director_clue: 'Re-imagined by lyricist-composer Jaani and sung by young sensation Mohammad Faiz, paying tribute to Aadesh Shrivastava’s iconic K3G hook.',
-    distractors: ['Agar Ho Tum', 'Soni Soni', 'Tum Kya Mile'],
+    distractors: ['Soni Soni', 'Tum Kya Mile', 'Khoobsurat'],
     youtube_video_id: 'rMfugUZD2dA',
     fun_fact: 'Sung by 16-year-old Superstar Singer winner Mohammad Faiz, retaining the beloved nostalgic verse from Kabhi Khushi Kabhie Gham.'
   },
@@ -84,12 +85,11 @@ const LATEST_BOLLYWOOD_POOL = [
     era: '2020s',
     release_year: 2024,
     english_riddle_1: 'Why do you keep your gaze lowered when your eyes hold the spark that sets the entire room ablaze?',
-    english_riddle_2: 'Every step you take exudes royal grace; even the brightest diamonds fade beside your confidence.',
     hinglish_lyrics_1: 'Naina da kehna, ni tera mukhda sona, vekh ke tenu dil mera khona',
     hinglish_lyrics_2: 'Ni tu husn di rani, teri alag kahani, tere piche phire duniya deewani',
     actor_visual_clue: 'Tabu, Kareena Kapoor Khan, and Kriti Sanon strut through a glamorous studio set alongside Diljit Dosanjh and Badshah.',
     music_director_clue: 'Composed by Raj Ranjodh with powerhouse vocals by Diljit Dosanjh and a rap verse by Badshah.',
-    distractors: ['Tauba Tauba', 'Akhiyaan Gulaab', 'Choli Ke Peeche'],
+    distractors: ['Tauba Tauba', 'Akhiyaan Gulaab', 'Taras'],
     youtube_video_id: '3u6lLWGjFLY',
     fun_fact: 'Brought together three generations of leading Bollywood actresses—Tabu, Kareena Kapoor Khan, and Kriti Sanon—in one glamorous frame.'
   },
@@ -100,8 +100,7 @@ const LATEST_BOLLYWOOD_POOL = [
     era: '2020s',
     release_year: 2024,
     english_riddle_1: 'Oh beautiful one, every time you come close, my heartbeat skips a rhythm and whispers only your name.',
-    english_riddle_2: 'Let the world fade into the background tonight while our eyes speak the language of young love.',
-    hinglish_lyrics_1: 'Soni soni akhiyon waali, dil le gayi tu bholi bhaali, teri adaayein sabse निराली',
+    hinglish_lyrics_1: 'Soni soni akhiyon waali, dil le gayi tu bholi bhaali, teri adayein sabse niraali',
     hinglish_lyrics_2: 'Paas aaye jab tu mere, bhool jaayein hum gham saare',
     actor_visual_clue: 'Rohit Saraf and Pashmina Roshan dance under shimmering neon lights with fluid contemporary hook steps.',
     music_director_clue: 'Composed by Rochak Kohli with lyrics by Gurpreet Saini and vocals by Darshan Raval and Jonita Gandhi.',
@@ -116,7 +115,6 @@ const LATEST_BOLLYWOOD_POOL = [
     era: '2020s',
     release_year: 2024,
     english_riddle_1: 'Show a little mercy on my restless heart tonight; why do you keep testing my patience from afar?',
-    english_riddle_2: 'The bass is thumping and the night is young, yet my eyes are searching only for your silhouette.',
     hinglish_lyrics_1: 'Taras nahi aaya tujhko zara, dil mera tarse tere bina',
     hinglish_lyrics_2: 'Raat bhar jaagein hum teri yaad mein, aaja ab toh meri faryaad mein',
     actor_visual_clue: 'Sharvari Wagh delivers a high-voltage, athletic dance performance under electric blue and magenta club lights.',
@@ -132,7 +130,6 @@ const LATEST_BOLLYWOOD_POOL = [
     era: '2020s',
     release_year: 2024,
     english_riddle_1: 'This is pure, unadorned love sitting quietly beside you—asking for nothing, yet giving away the entire soul.',
-    english_riddle_2: 'Through every storm and misunderstanding, the thread tying our hearts together refuses to break.',
     hinglish_lyrics_1: 'Yeh ishq hai, haan ishq hai, tujhse hi toh mera har rishta hai',
     hinglish_lyrics_2: 'Bina kahe jo samajh le dil ki zubaan, wahi toh hai mera saara jahaan',
     actor_visual_clue: 'Rohit Saraf and Prajakta Koli share an emotional, warm gaze amidst fairy lights and nostalgic college memories.',
@@ -148,7 +145,6 @@ const LATEST_BOLLYWOOD_POOL = [
     era: '2020s',
     release_year: 2025,
     english_riddle_1: 'Like a wandering star in the midnight sky, my heart orbits around the warmth of your memory.',
-    english_riddle_2: 'Even when distances stretch between our paths, your voice echoes softly in every breeze.',
     hinglish_lyrics_1: 'Saiyaara ve, dil mera banjaara ve, dhoondhe tera hi sahaara ve',
     hinglish_lyrics_2: 'Raaton ke saaye mein chamke tera noor, tujhse hoke bhi hum na hue door',
     actor_visual_clue: 'A sweeping romantic montage under starlit skies featuring emotional longing and acoustic guitar melodies.',
@@ -164,7 +160,6 @@ const LATEST_BOLLYWOOD_POOL = [
     era: '2020s',
     release_year: 2024,
     english_riddle_1: 'Across every lifetime and every parting, I promise that I will always belong only to you.',
-    english_riddle_2: 'Even when you vanish into the mist like a mystery, my heart waits faithfully for your return.',
     hinglish_lyrics_1: 'Tumhare hi rahenge hum, kuch bhi ho jaaye sanam, janam janam ka hai yeh bandhan',
     hinglish_lyrics_2: 'Teri yaadon ke saaye mein guzre har ek pal, tujhse hi hai mera aaj aur mera kal',
     actor_visual_clue: 'Rajkummar Rao and Shraddha Kapoor share a bittersweet, mystical reunion amidst ancient temple arches and glowing fireflies.',
@@ -172,6 +167,157 @@ const LATEST_BOLLYWOOD_POOL = [
     distractors: ['Khoobsurat', 'Aaj Ki Raat', 'Apna Bana Le'],
     youtube_video_id: 'cxK32_P0U0E',
     fun_fact: 'Serves as the emotional heart of Stree 2, continuing the mysterious unspoken romance between Vicky and Shraddha’s unnamed character.'
+  },
+  // Day 2 Batch (2024-2026 Latest Chartbusters)
+  {
+    song_name: 'Laal Peeli Akhiyaan',
+    movie_name: 'Teri Baaton Mein Aisa Uljha Jiya',
+    artist: 'Romy, Tanishk Bagchi, Neeraj Rajawat',
+    era: '2020s',
+    release_year: 2024,
+    english_riddle_1: 'With crimson and golden sparks in your playful gaze, you have spun everyone on the dance floor around your finger.',
+    hinglish_lyrics_1: 'Laal peeli akhiyaan, suno ji meri sakhiaan, dil le gayi yeh jaadoogari',
+    hinglish_lyrics_2: 'Naachne de aaj saari raat ve, dil mein chhupi hai jo baat ve',
+    actor_visual_clue: 'Shahid Kapoor and Kriti Sanon perform lightning-fast footwork in traditional blue and crimson festive outfits at a grand family wedding.',
+    music_director_clue: 'Rajasthani folk-inspired electro dance number composed by Tanishk Bagchi and sung by Romy.',
+    distractors: ['Akhiyaan Gulaab', 'Tauba Tauba', 'Aaj Ki Raat'],
+    youtube_video_id: '6d5SS0gS5bU',
+    fun_fact: 'Marked Shahid Kapoor’s return to high-speed solo dance choreography after nearly a decade.'
+  },
+  {
+    song_name: 'Teri Baaton Mein Aisa Uljha Jiya',
+    movie_name: 'Teri Baaton Mein Aisa Uljha Jiya',
+    artist: 'Raghav, Tanishk Bagchi, Asees Kaur',
+    era: '2020s',
+    release_year: 2024,
+    english_riddle_1: 'My heart has become so hopelessly tangled in your conversations that I sit lost in daydreams day and night.',
+    hinglish_lyrics_1: 'Teri baaton mein aisa uljha jiya, baithe hi baithe maine dil kho diya',
+    hinglish_lyrics_2: 'Meri nigaahon mein bas tera chehra hai, ishq ka rang ab kitna gehra hai',
+    actor_visual_clue: 'Shahid Kapoor and Kriti Sanon dance in matching black-and-crimson party attire during the film’s energetic title-track celebration.',
+    music_director_clue: 'Re-created by Tanishk Bagchi from Canadian-Indian singer Raghav’s iconic 2004 global pop hit, with female vocals by Asees Kaur.',
+    distractors: ['Akhiyaan Gulaab', 'Laal Peeli Akhiyaan', 'Soni Soni'],
+    youtube_video_id: '4A4W9k2nS7E',
+    fun_fact: 'Inspired the official title of the 2024 sci-fi romantic comedy starring Shahid Kapoor and Kriti Sanon.'
+  },
+  {
+    song_name: 'Sher Khul Gaye',
+    movie_name: 'Fighter',
+    artist: 'Vishal-Shekhar, Benny Dayal, Shilpa Rao',
+    era: '2020s',
+    release_year: 2024,
+    english_riddle_1: 'The lions have been unleashed onto the floor tonight; raise your glasses and let the celebration roar until dawn!',
+    hinglish_lyrics_1: 'Sher khul gaye, aaj raat ke saare bandhan khul gaye, jashn mein hum sab milke ghul gaye',
+    hinglish_lyrics_2: 'Tez dhadkanein hain, nasha chha gaya hai, har kadam pe masti ka samaa aaya hai',
+    actor_visual_clue: 'Hrithik Roshan, Deepika Padukone, and Anil Kapoor groove in sleek party wear at an Air Force officers’ club celebration.',
+    music_director_clue: 'Funk-disco party anthem composed by Vishal-Shekhar with vocals by Benny Dayal and Shilpa Rao and lyrics by Kumaar.',
+    distractors: ['Ghungroo', 'Ishq Jaisa Kuch', 'Jhoome Jo Pathaan'],
+    youtube_video_id: 'X9bB2rN2vUo',
+    fun_fact: 'Reunited the War blockbuster musical team of Hrithik Roshan, Vishal-Shekhar, Benny Dayal, and Shilpa Rao.'
+  },
+  {
+    song_name: 'Ishq Jaisa Kuch',
+    movie_name: 'Fighter',
+    artist: 'Vishal-Shekhar, Shilpa Rao, Mellow D',
+    era: '2020s',
+    release_year: 2024,
+    english_riddle_1: 'Something that feels remarkably like love has begun to stir between us as the ocean waves kiss the shore.',
+    hinglish_lyrics_1: 'Ishq jaisa kuch, haan ishq jaisa kuch, hone laga hai dil ko ab tujhse hi kuch',
+    hinglish_lyrics_2: 'Lehron ke sang behti hai meri aarzoo, har pal aankhon ke saamne hai bas tu',
+    actor_visual_clue: 'Hrithik Roshan and Deepika Padukone in glamorous beachwear performing smooth choreography by turquoise waters.',
+    music_director_clue: 'Electro-synth beach romance composed by Vishal-Shekhar featuring Shilpa Rao’s sultry vocals and a rap section by Mellow D.',
+    distractors: ['Besharam Rang', 'Sher Khul Gaye', 'Taras'],
+    youtube_video_id: 'p6ca7gq5H70',
+    fun_fact: 'Filmed across scenic Mediterranean coastal locations showcasing Hrithik Roshan and Deepika Padukone’s first on-screen pairing.'
+  },
+  {
+    song_name: 'Mere Mehboob',
+    movie_name: 'Vicky Vidya Ka Woh Wala Video',
+    artist: 'Shilpa Rao, Sachet Tandon, Sachin-Jigar',
+    era: '2020s',
+    release_year: 2024,
+    english_riddle_1: 'Oh my beloved, wait just a moment before you leave; the entire lane has gathered only to catch a glimpse of your smile.',
+    hinglish_lyrics_1: 'Mere mehboob, mere sanam, shukriya meherbaani karam',
+    hinglish_lyrics_2: 'Teri galiyon mein aake dil kho gaya, dekhte hi tujhe main tera ho gaya',
+    actor_visual_clue: 'Rajkummar Rao and Triptii Dimri dance in vibrant retro 90s Bollywood costumes on a colorful street set.',
+    music_director_clue: 'Composed by Sachin-Jigar with powerhouse duet vocals by Shilpa Rao and Sachet Tandon.',
+    distractors: ['Aaj Ki Raat', 'Khoobsurat', 'Tauba Tauba'],
+    youtube_video_id: 'w2xE1eS3X9c',
+    fun_fact: 'Pays playful homage to 1990s Bollywood theatrical dance numbers matching the film’s nostalgic 1997 setting.'
+  },
+  {
+    song_name: 'Jaiye Sajana',
+    movie_name: 'Dhurandhar The Revenge',
+    artist: 'Shashwat Sachdev, Jasmine Sandlas, Satinder Sartaaj',
+    era: '2020s',
+    release_year: 2026,
+    english_riddle_1: 'Go ahead, my beloved, yet know that every road you walk will bring your footsteps back to my threshold.',
+    hinglish_lyrics_1: 'Jaiye sajana, dil tod ke kahan jaoge, har mod pe mera hi naam paoge',
+    hinglish_lyrics_2: 'Tere bina adhoori hai meri har dastaan, tu hi mera zameen aur tu hi aasmaan',
+    actor_visual_clue: 'A dramatic, high-stakes cinematic sequence blending Sufi longing with intense action drama.',
+    music_director_clue: 'Composed by Shashwat Sachdev featuring folk-Sufi maestro Satinder Sartaaj and powerhouse vocalist Jasmine Sandlas.',
+    distractors: ['Taras', 'Saiyaara', 'Ishq Hai'],
+    youtube_video_id: '',
+    fun_fact: 'Brought together Punjabi Sufi legend Satinder Sartaaj and Jasmine Sandlas under Shashwat Sachdev’s modern production.'
+  },
+  {
+    song_name: 'Deewaana Deewaana',
+    movie_name: 'Tere Ishk Mein',
+    artist: 'A.R. Rahman, Irshad Kamil',
+    era: '2020s',
+    release_year: 2025,
+    english_riddle_1: 'Madly consumed by your devotion, my heart walks willingly into the fire of love without asking for a cure.',
+    hinglish_lyrics_1: 'Deewaana deewaana, tere ishq mein dil hua begaana',
+    hinglish_lyrics_2: 'Aag mein jal ke bhi muskurane laga, tera hi geet har pal gaane laga',
+    actor_visual_clue: 'Dhanush and Kriti Sanon in an intense, rain-drenched passionate confrontation echoing the spiritual world of Raanjhanaa.',
+    music_director_clue: 'Composed by A.R. Rahman with searing poetic lyrics by Irshad Kamil for Aanand L. Rai’s spiritual successor to Raanjhanaa.',
+    distractors: ['Saiyaara', 'Satranga', 'Apna Bana Le'],
+    youtube_video_id: '',
+    fun_fact: 'Reunited director Aanand L. Rai, actor Dhanush, composer A.R. Rahman, and lyricist Irshad Kamil twelve years after Raanjhanaa.'
+  },
+  {
+    song_name: 'Ghafoor',
+    movie_name: 'The Ba***ds of Bollywood',
+    artist: 'Shilpa Rao, Ujwal Gupta, Shashwat Sachdev',
+    era: '2020s',
+    release_year: 2025,
+    english_riddle_1: 'Behind the velvet curtains and blinding spotlights, every secret of the city dances to a dangerous beat.',
+    hinglish_lyrics_1: 'Raat ke parde mein chamke sitaare, ishq aur junoon ke dekho ishaare',
+    hinglish_lyrics_2: 'Har nazar mein chhupa hai ek naya raaz, suno dil ki dhadkano ka yeh andaaz',
+    actor_visual_clue: 'A sleek, neon-noir glamour sequence set inside Mumbai’s high-stakes film industry.',
+    music_director_clue: 'Composed and produced by Shashwat Sachdev and Ujwal Gupta with vocals by Shilpa Rao.',
+    distractors: ['Sher Khul Gaye', 'Taras', 'Naina'],
+    youtube_video_id: '',
+    fun_fact: 'Featured on the soundtrack of Aryan Khan’s directorial debut series set inside the world of Hindi cinema.'
+  },
+  {
+    song_name: 'Rooh',
+    movie_name: 'Dhadak 2',
+    artist: 'Jubin Nautiyal, Shreyas Puranik, Siddharth-Garima',
+    era: '2020s',
+    release_year: 2025,
+    english_riddle_1: 'Even if the world stands between our shadows, my soul has already merged with yours beyond the reach of fear.',
+    hinglish_lyrics_1: 'Meri rooh mein bas gaya hai tera naam, tere sang hi meri subah aur shaam',
+    hinglish_lyrics_2: 'Duniya ki deewarein rok na paayein, hum toh hawaon ke sang ud jaayein',
+    actor_visual_clue: 'Siddhant Chaturvedi and Triptii Dimri share a defiant, emotional embrace against a stormy sky.',
+    music_director_clue: 'Composed by Shreyas Puranik with lyrics by Siddharth-Garima and heartfelt vocals by Jubin Nautiyal.',
+    distractors: ['Saiyaara', 'Ishq Hai', 'Tumhare Hi Rahenge Hum'],
+    youtube_video_id: '',
+    fun_fact: 'Composed by Animal breakout composer Shreyas Puranik for the romantic drama sequel starring Siddhant Chaturvedi and Triptii Dimri.'
+  },
+  {
+    song_name: 'Agar Ho Tum',
+    movie_name: 'Mr. & Mrs. Mahi',
+    artist: 'Jubin Nautiyal, Tanishk Bagchi, Kausar Munir',
+    era: '2020s',
+    release_year: 2024,
+    english_riddle_1: 'As long as you are walking beside me, even the longest desert road feels like a garden in full bloom.',
+    hinglish_lyrics_1: 'Agar ho tum toh har lamha suhaana hai, tumse hi toh roshan mera zamaana hai',
+    hinglish_lyrics_2: 'Dhoop mein bhi chhaanv sa laage tera saath, haathon mein rahe bas tera hi haath',
+    actor_visual_clue: 'Rajkummar Rao and Janhvi Kapoor cheer under stadium floodlights and ride through quiet evening streets on a scooter.',
+    music_director_clue: 'Melodic acoustic ballad composed by Tanishk Bagchi, penned by Kausar Munir, and sung by Jubin Nautiyal.',
+    distractors: ['Dekhha Tenu', 'Soni Soni', 'Tum Kya Mile'],
+    youtube_video_id: '5mY8_W3a9xI',
+    fun_fact: 'Written by Kausar Munir to capture the quiet companionship of a married couple chasing a shared cricket dream.'
   }
 ];
 
@@ -198,18 +344,18 @@ async function fetchItunesPreviewUrl(songName, artistName = '') {
 }
 
 /**
- * Discovers fresh latest Bollywood songs from iTunes India API when the pre-curated pool is exhausted
+ * Discovers fresh latest (2024+) Bollywood songs from iTunes India API when the pre-curated pool is exhausted
  */
 async function discoverLiveBollywoodTracks(existingNamesSet, limit = 10) {
   const searchTerms = [
     'Bollywood 2026',
     'Bollywood 2025',
-    'Arijit Singh 2025 2026',
-    'Sachin-Jigar 2025 2026',
-    'Vishal Mishra Bollywood',
-    'Tanishk Bagchi latest',
-    'Pritam Bollywood latest',
-    'Diljit Dosanjh Bollywood'
+    'Hindi 2025 2026',
+    'Arijit Singh 2025',
+    'Sachin-Jigar 2025',
+    'Vishal Mishra 2025',
+    'Tanishk Bagchi 2025',
+    'Shashwat Sachdev'
   ];
 
   const discovered = [];
@@ -217,7 +363,7 @@ async function discoverLiveBollywoodTracks(existingNamesSet, limit = 10) {
   for (const term of searchTerms) {
     if (discovered.length >= limit) break;
     try {
-      const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&country=IN&media=music&entity=song&limit=25`;
+      const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&country=IN&media=music&entity=song&limit=35`;
       const res = await fetch(url);
       if (!res.ok) continue;
       const data = await res.json();
@@ -225,10 +371,15 @@ async function discoverLiveBollywoodTracks(existingNamesSet, limit = 10) {
         if (!item.previewUrl || !item.trackName) continue;
         if (item.primaryGenreName !== 'Bollywood' && !item.primaryGenreName?.includes('Indian')) continue;
 
+        const releaseYear = item.releaseDate ? parseInt(item.releaseDate.slice(0, 4), 10) : 2025;
+        if (releaseYear < 2024) continue; // Strictly latest (2024+) tracks only!
+
         const cleanTitle = item.trackName
           .replace(/\(From.*?\)/gi, '')
           .replace(/\[From.*?\]/gi, '')
-          .replace(/- Single/gi, '')
+          .replace(/\(feat\..*?\)/gi, '')
+          .replace(/\(Original.*?\)/gi, '')
+          .replace(/\s*-\s*Single$/i, '')
           .trim();
 
         const key = cleanTitle.toLowerCase();
@@ -237,8 +388,10 @@ async function discoverLiveBollywoodTracks(existingNamesSet, limit = 10) {
         const movieMatch =
           item.trackName.match(/From ["']([^"']+)["']/i) ||
           item.collectionName?.match(/^([^(-\[]+)/);
-        const movieName = movieMatch ? movieMatch[1].trim() : item.collectionName || 'Bollywood Single';
-        const releaseYear = item.releaseDate ? parseInt(item.releaseDate.slice(0, 4), 10) : 2025;
+        const movieName = (movieMatch ? movieMatch[1] : item.collectionName || 'Bollywood Single')
+          .replace(/\(Original Motion Picture.*?\)/gi, '')
+          .replace(/\s*-\s*Single$/i, '')
+          .trim();
 
         existingNamesSet.add(key);
         discovered.push({
@@ -264,6 +417,22 @@ async function discoverLiveBollywoodTracks(existingNamesSet, limit = 10) {
 }
 
 /**
+ * Saves the full list of daily synced songs to server/curated/daily_synced_songs.json
+ * when running locally or in GitHub Actions so Vercel's in-memory catalog has them baked in.
+ */
+function persistDailySongsJson() {
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) return;
+  try {
+    const allDaily = getDailyLatestSongs();
+    if (Array.isArray(allDaily) && allDaily.length > 0) {
+      fs.writeFileSync(DAILY_JSON_PATH, JSON.stringify(allDaily, null, 2) + '\n', 'utf8');
+    }
+  } catch (e) {
+    // Ignore on read-only filesystems
+  }
+}
+
+/**
  * Adds up to `count` (default 10) latest Bollywood songs to the active database
  * for both Solo/Team Guess and 5-Second Audio Blitz.
  */
@@ -274,33 +443,47 @@ async function syncDailyLatestSongs(count = 10) {
 
   const addedSongs = [];
 
-  // 1. First pull any unadded songs from our high-precision LATEST_BOLLYWOOD_POOL
+  // 1. Pull unadded songs from our high-precision LATEST_BOLLYWOOD_POOL and resolve preview URLs in parallel
+  const poolCandidates = [];
   for (const item of LATEST_BOLLYWOOD_POOL) {
-    if (addedSongs.length >= count) break;
+    if (poolCandidates.length >= count) break;
     const key = item.song_name.toLowerCase().trim();
     if (existingSet.has(key)) continue;
-
-    const previewUrl = await fetchItunesPreviewUrl(item.song_name, item.artist);
-    const cardToInsert = {
-      ...item,
-      english_riddle_2: item.hinglish_lyrics_2
-        ? translateHinglishVerseLiterally(item.hinglish_lyrics_2)
-        : item.english_riddle_2,
-      preview_url: previewUrl || item.preview_url || '',
-      is_daily_latest: true,
-      added_date: todayStr
-    };
-
-    const newId = insertTriviaCard(cardToInsert);
     existingSet.add(key);
-    addedSongs.push({
-      id: newId,
-      song_name: item.song_name,
-      movie_name: item.movie_name,
-      artist: item.artist,
-      release_year: item.release_year,
-      hasAudioStream: Boolean(previewUrl)
-    });
+    poolCandidates.push(item);
+  }
+
+  if (poolCandidates.length > 0) {
+    const resolvedPreviews = await Promise.all(
+      poolCandidates.map((item) =>
+        item.preview_url ? Promise.resolve(item.preview_url) : fetchItunesPreviewUrl(item.song_name, item.artist)
+      )
+    );
+
+    for (let i = 0; i < poolCandidates.length; i++) {
+      const item = poolCandidates[i];
+      const previewUrl = resolvedPreviews[i] || '';
+      const cardToInsert = {
+        ...item,
+        english_riddle_2: item.hinglish_lyrics_2
+          ? translateHinglishVerseLiterally(item.hinglish_lyrics_2)
+          : item.english_riddle_2,
+        preview_url: previewUrl,
+        is_daily_latest: true,
+        added_date: todayStr
+      };
+
+      const newId = insertTriviaCard(cardToInsert);
+      addedSongs.push({
+        id: newId,
+        song_name: item.song_name,
+        movie_name: item.movie_name,
+        artist: item.artist,
+        release_year: item.release_year,
+        added_date: todayStr,
+        hasAudioStream: Boolean(previewUrl)
+      });
+    }
   }
 
   // 2. If we still need more to reach `count`, discover live from Apple Music / iTunes India Charts
@@ -348,12 +531,15 @@ async function syncDailyLatestSongs(count = 10) {
         movie_name: cardData.movie_name,
         artist: cardData.artist,
         release_year: cardData.release_year,
+        added_date: todayStr,
         hasAudioStream: Boolean(cardData.preview_url)
       });
     }
   }
 
   lastDailySyncDate = todayStr;
+  persistDailySongsJson();
+
   return {
     date: todayStr,
     addedCount: addedSongs.length,
@@ -379,9 +565,13 @@ async function ensureDailyLatestSongs() {
 }
 
 function getLastDailySyncInfo() {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const addedToday = getTodayAddedCount(todayStr);
   return {
-    lastSyncDate: lastDailySyncDate,
-    todayDate: new Date().toISOString().slice(0, 10)
+    lastSyncDate: lastDailySyncDate || (addedToday >= 10 ? todayStr : null),
+    todayDate: todayStr,
+    addedToday,
+    isSyncedToday: addedToday >= 10
   };
 }
 
@@ -390,5 +580,6 @@ module.exports = {
   ensureDailyLatestSongs,
   fetchItunesPreviewUrl,
   getLastDailySyncInfo,
+  persistDailySongsJson,
   LATEST_BOLLYWOOD_POOL
 };

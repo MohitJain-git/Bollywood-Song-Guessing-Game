@@ -501,7 +501,7 @@ export default function AudioBlitzMode() {
           {/* NATIVE HTML5 AUDIO ELEMENT */}
           <audio
             ref={audioRef}
-            src={card.preview_url && card.id > 220 ? card.preview_url : `/audio_clips/${card.id}.mp3`}
+            src={card.preview_url && card.id > 230 ? card.preview_url : `/audio_clips/${card.id}.mp3`}
             preload="auto"
             crossOrigin="anonymous"
             onTimeUpdate={handleTimeUpdate}

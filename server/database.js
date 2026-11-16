@@ -5,17 +5,44 @@ const { SEED_TRIVIA_CARDS } = require('./seedData');
 const { translateHinglishVerseLiterally } = require('./literalTranslator');
 
 const BASE_DIR = path.resolve(__dirname, '..');
+const DAILY_SYNCED_JSON_PATH = path.join(__dirname, 'curated', 'daily_synced_songs.json');
 let db = null;
 let useMemoryFallback = false;
 
-// Prepare memory card catalog as pristine fallback
-const inMemoryCards = CURATED_210_SONGS.map((c, idx) => ({
-  ...c,
-  id: c.id || (idx + 1),
-  times_played: 0,
-  times_correct: 0,
-  distractors: Array.isArray(c.distractors) ? c.distractors : []
-}));
+let initialDailySongs = [];
+try {
+  if (fs.existsSync(DAILY_SYNCED_JSON_PATH)) {
+    const parsedDaily = JSON.parse(fs.readFileSync(DAILY_SYNCED_JSON_PATH, 'utf8'));
+    if (Array.isArray(parsedDaily)) {
+      initialDailySongs = parsedDaily;
+    }
+  }
+} catch (e) {
+  console.warn('[DB] Could not load daily_synced_songs.json:', e.message);
+}
+
+// Prepare memory card catalog as pristine fallback (includes curated 210 + persisted daily synced songs)
+const inMemoryCards = [
+  ...CURATED_210_SONGS.map((c, idx) => ({
+    ...c,
+    id: c.id || (idx + 1),
+    times_played: 0,
+    times_correct: 0,
+    distractors: Array.isArray(c.distractors) ? c.distractors : []
+  })),
+  ...initialDailySongs.map((c, idx) => ({
+    ...c,
+    id: c.id || (211 + idx),
+    is_daily_latest: true,
+    times_played: 0,
+    times_correct: 0,
+    distractors: Array.isArray(c.distractors)
+      ? c.distractors
+      : typeof c.distractors === 'string'
+      ? JSON.parse(c.distractors || '[]')
+      : []
+  }))
+];
 
 // Initialize SQLite connection safely
 try {
@@ -547,6 +574,22 @@ function getTodayAddedCount(todayStr) {
   return inMemoryCards.filter(c => c.added_date === todayStr).length;
 }
 
+function getDailyLatestSongs() {
+  if (db && !useMemoryFallback) {
+    try {
+      const rows = db.prepare('SELECT * FROM trivia_cards WHERE is_daily_latest = 1 ORDER BY id ASC').all();
+      return rows.map((r) => ({
+        ...r,
+        is_daily_latest: true,
+        distractors: typeof r.distractors === 'string' ? JSON.parse(r.distractors || '[]') : r.distractors || []
+      }));
+    } catch (err) {
+      console.warn('[DB] getDailyLatestSongs SQLite failed:', err.message);
+    }
+  }
+  return inMemoryCards.filter((c) => c.is_daily_latest);
+}
+
 function getCandidateSongForGeneration(era) {
   if (db && !useMemoryFallback) {
     try {
@@ -583,12 +626,18 @@ function getDatabaseStats() {
       const unplayedCards = db.prepare('SELECT COUNT(*) as c FROM trivia_cards WHERE times_played = 0').get().c;
       const dailyLatestCount = db.prepare('SELECT COUNT(*) as c FROM trivia_cards WHERE is_daily_latest = 1').get().c;
       const eras = db.prepare('SELECT era, COUNT(*) as count FROM trivia_cards GROUP BY era').all();
+      const recentDailySongs = db
+        .prepare(
+          'SELECT id, song_name, movie_name, artist, release_year, added_date FROM trivia_cards WHERE is_daily_latest = 1 ORDER BY id DESC LIMIT 20'
+        )
+        .all();
       return {
         totalSongs,
         totalCards,
         unplayedCards,
         dailyLatestCount,
-        eras
+        eras,
+        recentDailySongs
       };
     } catch (err) {
       console.warn('[DB] getDatabaseStats SQLite failed, calculating from memory:', err.message);
@@ -600,13 +649,26 @@ function getDatabaseStats() {
     eraMap[c.era] = (eraMap[c.era] || 0) + 1;
   });
   const eras = Object.entries(eraMap).map(([era, count]) => ({ era, count }));
+  const recentDailySongs = inMemoryCards
+    .filter(c => c.is_daily_latest)
+    .slice(-20)
+    .reverse()
+    .map(c => ({
+      id: c.id,
+      song_name: c.song_name,
+      movie_name: c.movie_name,
+      artist: c.artist,
+      release_year: c.release_year,
+      added_date: c.added_date
+    }));
 
   return {
     totalSongs: 1243,
     totalCards: inMemoryCards.length,
     unplayedCards: inMemoryCards.filter(c => c.times_played === 0).length,
     dailyLatestCount: inMemoryCards.filter(c => c.is_daily_latest).length,
-    eras
+    eras,
+    recentDailySongs
   };
 }
 
@@ -619,6 +681,7 @@ module.exports = {
   insertTriviaCard,
   getAllSongNames,
   getTodayAddedCount,
+  getDailyLatestSongs,
   getCandidateSongForGeneration,
   getDatabaseStats,
   cleanSongTitle,

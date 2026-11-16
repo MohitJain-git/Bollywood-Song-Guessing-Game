@@ -180,17 +180,53 @@ export default function SettingsModal({ isOpen, onClose }) {
             {stats && (
               <div className="stats-grid">
                 <div className="stat-card">
-                  <span className="stat-num">{stats.totalSongs}</span>
-                  <span className="stat-sub">CSV Songs Pool</span>
-                </div>
-                <div className="stat-card">
                   <span className="stat-num">{stats.totalCards}</span>
-                  <span className="stat-sub">Active Trivia Cards</span>
+                  <span className="stat-sub">Active Game Songs</span>
                 </div>
                 <div className="stat-card">
-                  <span className="stat-num text-emerald-400">{stats.unplayedCards}</span>
+                  <span className="stat-num text-emerald-400">{stats.dailyLatestCount || 0}</span>
+                  <span className="stat-sub">Daily Latest Added</span>
+                </div>
+                <div className="stat-card">
+                  <span className="stat-num text-amber-400">{stats.unplayedCards}</span>
                   <span className="stat-sub">Unplayed Cards</span>
                 </div>
+              </div>
+            )}
+
+            {/* Daily 10 Latest Songs Verification Panel */}
+            {stats && (
+              <div className="mt-4 p-3 rounded-xl bg-zinc-900/90 border border-emerald-500/30">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-emerald-300">
+                    📅 Daily 10 Latest Songs Auto-Sync
+                  </span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold">
+                    {stats.dailySync?.isSyncedToday
+                      ? `✅ Synced Today (${stats.dailySync?.todayDate})`
+                      : `Last Sync: ${stats.dailySync?.lastSyncDate || 'Ready'}`}
+                  </span>
+                </div>
+
+                {Array.isArray(stats.recentDailySongs) && stats.recentDailySongs.length > 0 && (
+                  <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 mt-2">
+                    {stats.recentDailySongs.map((s) => (
+                      <div
+                        key={s.id}
+                        className="flex items-center justify-between text-xs bg-zinc-800/70 px-2.5 py-1.5 rounded-lg border border-zinc-700/60"
+                      >
+                        <div className="truncate pr-2">
+                          <span className="text-amber-400 font-bold mr-1.5">#{s.id}</span>
+                          <strong className="text-white">{s.song_name}</strong>
+                          <span className="text-zinc-400"> • {s.movie_name} ({s.release_year})</span>
+                        </div>
+                        <span className="text-[11px] text-emerald-400 font-mono shrink-0">
+                          {s.added_date || 'Synced'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
