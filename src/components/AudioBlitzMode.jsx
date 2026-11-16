@@ -362,7 +362,24 @@ export default function AudioBlitzMode() {
     if (option === card.song_name) {
       handleCorrectGuess();
     } else {
-      handleWrongGuess();
+      stopAudio();
+      sounds.playWrong();
+      setStreak(0);
+      triggerViewTransition(() => {
+        setIsAnswerRevealed(true);
+        setGuessFeedback({
+          status: 'wrong',
+          message: `❌ Wrong multiple-choice pick ("${option}")! 0 PTS awarded — the track was "${card.song_name}".`
+        });
+      }, '#blitz-revealed-heading');
+
+      if (card?.id) {
+        fetch('/api/trivia/record', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: card.id, isCorrect: false })
+        }).catch(() => {});
+      }
     }
   };
 
@@ -716,8 +733,29 @@ export default function AudioBlitzMode() {
           ) : (
             /* REVEALED SONG CARD WITH PURE SONG DETAILS & FULL PLAYERS */
             <div className="answer-card-revealed clue-entry-anim">
+              {guessFeedback && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className={`feedback-alert ${
+                    guessFeedback.status === 'correct' ? 'feedback-success' : 'feedback-error'
+                  } animate-pop mb-4`}
+                >
+                  {guessFeedback.status === 'correct' ? (
+                    <CheckCircle2 size={20} aria-hidden="true" />
+                  ) : (
+                    <XCircle size={20} aria-hidden="true" />
+                  )}
+                  <span>{guessFeedback.message}</span>
+                </div>
+              )}
+
               <div className="answer-header">
-                <div className="song-badge">🎉 5-Sec Audio Challenge Solved!</div>
+                <div className="song-badge">
+                  {guessFeedback?.status === 'correct'
+                    ? '🎉 5-Sec Audio Challenge Solved!'
+                    : '🎵 5-Sec Audio Answer Revealed (0 PTS)'}
+                </div>
                 <h2
                   id="blitz-revealed-heading"
                   tabIndex={-1}

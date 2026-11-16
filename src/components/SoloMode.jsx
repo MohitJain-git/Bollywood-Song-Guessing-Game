@@ -251,7 +251,24 @@ export default function SoloMode({ onOpenSettings }) {
     if (option === card.song_name) {
       handleCorrectGuess(calculatePoints());
     } else {
-      handleWrongGuess();
+      sounds.playWrong();
+      setStreak(0);
+      triggerViewTransition(() => {
+        setIsAnswerRevealed(true);
+        setCurrentClueLevel(5);
+        setGuessFeedback({
+          status: 'wrong',
+          message: `❌ Wrong multiple-choice pick ("${option}")! 0 PTS awarded — the track was "${card.song_name}".`
+        });
+      }, '#revealed-song-heading');
+
+      if (card?.id) {
+        fetch('/api/trivia/record', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: card.id, isCorrect: false })
+        }).catch(() => {});
+      }
     }
   };
 
@@ -472,7 +489,11 @@ export default function SoloMode({ onOpenSettings }) {
             /* REVEALED ANSWER & YOUTUBE PLAYER */
             <div className="answer-card-revealed clue-entry-anim">
               <div className="answer-header">
-                <div className="song-badge">🎉 Bollywood Track Revealed</div>
+                <div className="song-badge">
+                  {guessFeedback?.status === 'correct'
+                    ? '🎉 Bollywood Track Solved!'
+                    : '🎵 Bollywood Track Revealed (0 PTS)'}
+                </div>
                 <h2
                   id="revealed-song-heading"
                   tabIndex={-1}

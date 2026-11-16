@@ -3,14 +3,14 @@ import Navbar from './components/Navbar';
 import SoloMode from './components/SoloMode';
 import AudioBlitzMode from './components/AudioBlitzMode';
 import TeamPartyMode from './components/TeamPartyMode';
-import MultiplayerMode from './components/MultiplayerMode';
 import SettingsModal from './components/SettingsModal';
 import { triggerViewTransition, loadSessionState, saveSessionState } from './utils/gameTech';
 
 export default function App() {
   const [activeMode, setActiveMode] = useState(() => {
     const saved = loadSessionState('bolly_app_nav_v1', { activeMode: 'solo' });
-    return saved.activeMode || 'solo';
+    const mode = saved.activeMode || 'solo';
+    return mode === 'multiplayer' ? 'solo' : mode;
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -50,9 +50,6 @@ export default function App() {
         )}
         {activeMode === 'teams' && (
           <TeamPartyMode />
-        )}
-        {activeMode === 'multiplayer' && (
-          <MultiplayerMode />
         )}
       </main>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, VolumeX, Settings, Users, User, Globe, Zap } from 'lucide-react';
+import { Volume2, VolumeX, Settings, Users, User, Zap } from 'lucide-react';
 import { sounds } from './SoundEffects';
 
 export default function Navbar({ activeMode, setActiveMode, onOpenSettings }) {
@@ -53,14 +53,6 @@ export default function Navbar({ activeMode, setActiveMode, onOpenSettings }) {
         >
           <Users size={16} />
           <span>Team Battle</span>
-        </button>
-
-        <button
-          onClick={() => setActiveMode('multiplayer')}
-          className={`nav-tab-btn ${activeMode === 'multiplayer' ? 'active' : ''}`}
-        >
-          <Globe size={16} />
-          <span>Online Party</span>
         </button>
       </nav>
 
