@@ -38,7 +38,9 @@ export default function TeamPartyMode() {
     guessFeedback: null,
     isStealPhase: false,
     stealInput: '',
+    smartHint: null,
     timeLeft: 45,
+    timerEnabled: true,
     winnerTeam: null,
     playedIds: []
   });
@@ -74,10 +76,15 @@ export default function TeamPartyMode() {
   const [isStealPhase, setIsStealPhase] = useState(Boolean(initialSession.isStealPhase));
   const [stealInput, setStealInput] = useState(initialSession.stealInput || '');
 
-  // Host secret peek
+  // Host secret peek & Smart Hint
   const [showHostPeek, setShowHostPeek] = useState(false);
+  const [smartHint, setSmartHint] = useState(initialSession.smartHint || null);
+  const [loadingSmartHint, setLoadingSmartHint] = useState(false);
 
   // Timer & Session History
+  const [timerEnabled, setTimerEnabled] = useState(
+    initialSession.timerEnabled !== undefined ? Boolean(initialSession.timerEnabled) : true
+  );
   const [timeLeft, setTimeLeft] = useState(
     typeof initialSession.timeLeft === 'number' && initialSession.timeLeft > 0
       ? initialSession.timeLeft
@@ -111,7 +118,9 @@ export default function TeamPartyMode() {
       guessFeedback,
       isStealPhase,
       stealInput,
+      smartHint,
       timeLeft,
+      timerEnabled,
       winnerTeam,
       playedIds
     });
@@ -131,7 +140,9 @@ export default function TeamPartyMode() {
     guessFeedback,
     isStealPhase,
     stealInput,
+    smartHint,
     timeLeft,
+    timerEnabled,
     winnerTeam,
     playedIds
   ]);
@@ -148,6 +159,7 @@ export default function TeamPartyMode() {
     setUsedMultipleChoice(false);
     setGuessFeedback(null);
     setShowHostPeek(false);
+    setSmartHint(null);
 
     try {
       const params = [];
@@ -189,7 +201,7 @@ export default function TeamPartyMode() {
 
   // Timer countdown hook
   useEffect(() => {
-    if (!timerActive || isAnswerRevealed || timeLeft <= 0) return;
+    if (!timerEnabled || !timerActive || isAnswerRevealed || timeLeft <= 0) return;
     const interval = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
@@ -208,7 +220,26 @@ export default function TeamPartyMode() {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [timerActive, isAnswerRevealed, timeLeft, isStealPhase]);
+  }, [timerEnabled, timerActive, isAnswerRevealed, timeLeft, isStealPhase]);
+
+  const handleRequestSmartHint = async () => {
+    if (!card?.id || smartHint || loadingSmartHint) return;
+    sounds.playTick();
+    setLoadingSmartHint(true);
+    try {
+      const res = await fetch(`/api/trivia/smart-hint/${card.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        triggerViewTransition(() => {
+          setSmartHint(data.hint);
+        });
+      }
+    } catch (e) {
+      console.warn('Smart hint fetch failed:', e);
+    } finally {
+      setLoadingSmartHint(false);
+    }
+  };
 
   const calculatePoints = () => {
     let base = 20;
@@ -220,8 +251,11 @@ export default function TeamPartyMode() {
       case 5: base = 20; break;
       default: base = 20;
     }
+    if (smartHint) {
+      base = Math.max(10, base - 15);
+    }
     if (usedMultipleChoice) {
-      return Math.floor(base / 2); // Halve points if multiple choice hint used
+      return Math.max(5, Math.floor(base / 2)); // Halve points if multiple choice hint used
     }
     return base;
   };
@@ -329,11 +363,13 @@ export default function TeamPartyMode() {
   };
 
   const handleRestartGame = () => {
+    sounds.playTick();
     setTeams(teams.map(t => ({ ...t, score: 0 })));
     setActiveTeamIdx(0);
     setRoundNumber(1);
     setWinnerTeam(null);
-    loadNewRound();
+    setPlayedIds([]);
+    loadNewRound(card?.id);
   };
 
   const activeTeam = teams[activeTeamIdx];
@@ -458,21 +494,44 @@ export default function TeamPartyMode() {
               <span className="round-target">• First to {targetScore} Pts</span>
             </div>
 
-            {/* Host Secret Peek Button */}
-            {card && !isAnswerRevealed && (
-              <button
-                onClick={() => setShowHostPeek(prev => !prev)}
-                className="host-peek-btn"
-                title="Host secret answer checker"
-              >
-                {showHostPeek ? <EyeOff size={14} /> : <Eye size={14} />}
-                <span>{showHostPeek ? 'Hide Secret Answer' : 'Host Secret Peek'}</span>
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {/* Host Secret Peek Button */}
+              {card && !isAnswerRevealed && (
+                <button
+                  onClick={() => setShowHostPeek(prev => !prev)}
+                  className="host-peek-btn"
+                  title="Host secret answer checker"
+                >
+                  {showHostPeek ? <EyeOff size={14} /> : <Eye size={14} />}
+                  <span>{showHostPeek ? 'Hide Secret Answer' : 'Host Secret Peek'}</span>
+                </button>
+              )}
 
-            <div className={`timer-badge ${timeLeft <= 10 ? 'timer-warning' : ''}`}>
-              <Clock size={16} />
-              <span>{timeLeft}s</span>
+              <button
+                type="button"
+                onClick={handleRestartGame}
+                className="host-peek-btn"
+                title="Reset team scores and start a fresh match"
+              >
+                <RotateCcw size={14} />
+                <span>Reset Game</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sounds.playTick();
+                  setTimerEnabled(prev => !prev);
+                }}
+                className={`timer-toggle-btn ${
+                  timerEnabled ? (timeLeft <= 10 ? 'timer-warning' : 'timer-on') : 'timer-off'
+                }`}
+                title="Toggle optional round countdown timer ON/OFF"
+              >
+                <Clock size={15} />
+                <span>{timerEnabled ? `${timeLeft}s` : 'Timer Off'}</span>
+                <span className="timer-state-pill">{timerEnabled ? 'ON' : 'OFF'}</span>
+              </button>
             </div>
           </div>
 
@@ -515,6 +574,9 @@ export default function TeamPartyMode() {
                 currentClueLevel={currentClueLevel}
                 onRevealNextClue={() => setCurrentClueLevel(prev => Math.min(prev + 1, 5))}
                 isAnswerRevealed={isAnswerRevealed}
+                smartHint={smartHint}
+                onRequestSmartHint={handleRequestSmartHint}
+                loadingSmartHint={loadingSmartHint}
               />
 
               {/* Feedback Banner */}

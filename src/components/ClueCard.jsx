@@ -126,17 +126,15 @@ export default function ClueCard({
         </div>
       )}
 
-      {/* AI Shayari Metaphor Decoder & Word-Pattern Panel */}
+      {/* Word Pattern & Shayari Clue (Deducts 15 PTS) */}
       {smartHint && !isAnswerRevealed && (
-        <div className="smart-decoder-card clue-entry-anim">
-          <div className="decoder-header">
-            <span className="decoder-badge">
-              <Compass size={14} aria-hidden="true" />
-              <span>AI Shayari Decoder & Word Pattern</span>
+        <div className="clue-box visual-clue clue-entry-anim">
+          <div className="clue-header">
+            <span className="clue-badge purple">
+              <KeyRound size={14} aria-hidden="true" />
+              <span>Clue • Word Pattern & Shayari Decoder</span>
             </span>
-            <span className="decoder-meta">
-              {smartHint.wordCount} {smartHint.wordCount === 1 ? 'Word' : 'Words'} ({smartHint.letterCounts?.join(', ')} letters)
-            </span>
+            <span className="clue-pts-pill purple-pill">-15 PTS ({smartHint.wordCount} {smartHint.wordCount === 1 ? 'Word' : 'Words'}: {smartHint.letterCounts?.join(', ')} letters)</span>
           </div>
 
           <div className="title-mask-display" aria-label="Song title letter pattern">
@@ -161,7 +159,7 @@ export default function ClueCard({
         </div>
       )}
 
-      {/* Next Clue & Decoder Action Bar */}
+      {/* Next Clue & Word Pattern Clue Action Bar */}
       {!isAnswerRevealed && (
         <div className="clue-action-bar">
           {currentClueLevel < 5 && (
@@ -173,7 +171,7 @@ export default function ClueCard({
               <ChevronDown size={18} aria-hidden="true" />
               <span>
                 Unlock Clue {currentClueLevel + 1}{' '}
-                {currentClueLevel === 1 && '• Direct Word-for-Word Verse Translation (80 Pts)'}
+                {currentClueLevel === 1 && '• Direct Word-for-Word Verse (80 Pts)'}
                 {currentClueLevel === 2 && '• Cinema Frame & Stars (60 Pts)'}
                 {currentClueLevel === 3 && '• Maestro & Era (40 Pts)'}
                 {currentClueLevel === 4 && '• Original Hinglish Lyrics (20 Pts)'}
@@ -186,12 +184,14 @@ export default function ClueCard({
               type="button"
               onClick={onRequestSmartHint}
               disabled={loadingSmartHint}
-              className="btn btn-decoder-trigger"
-              title="Reveal the word-length pattern & key Hindi-to-English poetic metaphors (No point penalty!)"
+              className="btn btn-secondary reveal-clue-btn"
+              title="Unlock the song title word pattern & Shayari clue (-15 Pts)"
             >
-              <KeyRound size={16} aria-hidden="true" />
+              <KeyRound size={18} aria-hidden="true" />
               <span>
-                {loadingSmartHint ? 'Decoding Metaphors...' : '🔍 Decode Word Pattern & Shayari Clues'}
+                {loadingSmartHint
+                  ? 'Unlocking Word Pattern...'
+                  : 'Unlock Word Pattern & Shayari Clue (-15 Pts)'}
               </span>
             </button>
           )}

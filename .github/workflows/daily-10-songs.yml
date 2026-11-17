@@ -36,10 +36,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add server/bollywood_game.db server/curated/daily_synced_songs.json public/audio_clips/
+          git add server/curated/daily_synced_songs.json public/audio_clips/
           if git diff --staged --quiet; then
             echo "No new songs needed today."
           else
             git commit -m "chore(daily-songs): auto-add 10 latest Bollywood songs for Solo & 5s Blitz"
+            git pull --rebase --autostash origin main || true
             git push origin main
           fi

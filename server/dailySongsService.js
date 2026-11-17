@@ -318,10 +318,162 @@ const LATEST_BOLLYWOOD_POOL = [
     distractors: ['Dekhha Tenu', 'Soni Soni', 'Tum Kya Mile'],
     youtube_video_id: '5mY8_W3a9xI',
     fun_fact: 'Written by Kausar Munir to capture the quiet companionship of a married couple chasing a shared cricket dream.'
+  },
+  // Day 3 & Day 4 Batches (2024-2026 Latest Bollywood Chartbusters)
+  {
+    song_name: 'Raanjhan',
+    movie_name: 'Do Patti',
+    artist: 'Sachet-Parampara, Parampara Tandon, Kausar Munir',
+    era: '2020s',
+    release_year: 2024,
+    english_riddle_1: 'Oh my beloved wanderer, I handed you the keys to my soul, yet you left me standing alone in the valley of broken promises.',
+    hinglish_lyrics_1: 'Raanjhan ve, dil tod ke na jaa, meri aankhon ko aise rula ke na jaa',
+    hinglish_lyrics_2: 'Tere bina suni hai meri har raah, tujhse hi maangi thi maine panaah',
+    actor_visual_clue: 'Kriti Sanon and Shaheer Sheikh in an emotional, dramatic mountain-town romance filled with betrayal and heartbreak.',
+    music_director_clue: 'Soulful heartbreak ballad composed by Sachet-Parampara, sung by Parampara Tandon with lyrics by Kausar Munir.',
+    distractors: ['Saiyaara', 'Ishq Hai', 'Tumhare Hi Rahenge Hum'],
+    youtube_video_id: 'lBvbNxiVmZA',
+    fun_fact: 'Became one of the longest-charting Hindi heartbreak ballads on Spotify India across late 2024 and 2025.'
+  },
+  {
+    song_name: 'Jaana Samjho Na',
+    movie_name: 'Bhool Bhulaiyaa 3',
+    artist: 'Aditya Rikhari, Tulsi Kumar, Lijo George-DJ Chetas',
+    era: '2020s',
+    release_year: 2024,
+    english_riddle_1: 'My darling, try to understand the unspoken words in my eyes; without your presence, even the brightest evening feels incomplete.',
+    hinglish_lyrics_1: 'Jaana samjho na, dil mera tod ke chhodo na, tujhse hi toh hai mera har sapna',
+    hinglish_lyrics_2: 'Har pal teri yaad mein guzarta hai, mera dil bas tujhpe hi marta hai',
+    actor_visual_clue: 'Kartik Aaryan and Triptii Dimri share romantic choreography amidst glowing lanterns and royal palace courtyards.',
+    music_director_clue: 'Indie-pop hit by Aditya Rikhari recreated for Bhool Bhulaiyaa 3 with Lijo George-DJ Chetas and Tulsi Kumar.',
+    distractors: ['Soni Soni', 'Khoobsurat', 'Akhiyaan Gulaab'],
+    youtube_video_id: 'w4ClQO0FFQg',
+    fun_fact: 'Adapted from indie singer-songwriter Aditya Rikhari’s viral track into a mainstream romantic duet.'
+  },
+  {
+    song_name: 'Ami Je Tomar 3.0',
+    movie_name: 'Bhool Bhulaiyaa 3',
+    artist: 'Shreya Ghoshal, Pritam, Sameer',
+    era: '2020s',
+    release_year: 2024,
+    english_riddle_1: 'Wait and listen to the ancient anklets echoing through the palace halls; only for you do I dance across the centuries.',
+    hinglish_lyrics_1: 'Mere dholna sun, mere pyaar ki dhun, meri chaahatein toh fiza mein bahengi',
+    hinglish_lyrics_2: 'Zinda rahengi hoke fanaa, taanana tumana, meri saansein teri hi sada',
+    actor_visual_clue: 'Vidya Balan and Madhuri Dixit perform a breathtaking classical Kathak-Bharatanatyam face-off in a grand chandeliered palace.',
+    music_director_clue: 'Composed by Pritam and Amaal Mallik with virtuosic classical sargam vocals by Shreya Ghoshal.',
+    distractors: ['Ghar More Pardesiya', 'Deewani Mastani', 'Aaj Ki Raat'],
+    youtube_video_id: 'vB0V3iCSzQw',
+    fun_fact: 'Brought icons Vidya Balan and Madhuri Dixit together on screen for the first time in a historic classical dance showdown.'
+  },
+  {
+    song_name: 'Bhool Bhulaiyaa 3 Title Track',
+    movie_name: 'Bhool Bhulaiyaa 3',
+    artist: 'Diljit Dosanjh, Pitbull, Neeraj Shridhar, Tanishk Bagchi, Pritam',
+    era: '2020s',
+    release_year: 2024,
+    english_riddle_1: 'Behind the mysterious smile and haunted doors, the chant rises into an international party beat as the night comes alive!',
+    hinglish_lyrics_1: 'Teri aankhein bhool bhulaiyaa, baatein hain bhool bhulaiyaa, tere sapnon ki galiyon mein',
+    hinglish_lyrics_2: 'Saari raat nachhein hum khulke aaj, duniya pe chhaya hai apna hi raaj',
+    actor_visual_clue: 'Kartik Aaryan in his signature black Rooh Baba cloak performing the gliding footwork hook step under neon lights.',
+    music_director_clue: 'Global crossover remix by Tanishk Bagchi and Pritam uniting Pitbull, Diljit Dosanjh, and original vocalist Neeraj Shridhar.',
+    distractors: ['Naina', 'Tauba Tauba', 'Sher Khul Gaye'],
+    youtube_video_id: 'iAIBF2ngbWY',
+    fun_fact: 'Featured an international collaboration between global rap star Pitbull and Punjabi superstar Diljit Dosanjh.'
+  },
+  {
+    song_name: 'Tenu Sang Rakhna',
+    movie_name: 'Jigra',
+    artist: 'Arijit Singh, Anumita Nadesan, Achint, Varun Grover',
+    era: '2020s',
+    release_year: 2024,
+    english_riddle_1: 'I will shelter you in the palm of my hand against every storm; no shadow of sorrow will ever touch your doorstep.',
+    hinglish_lyrics_1: 'Tenu sang rakhna, har gham se tujhe bacha ke rakhna, palkon ki chhaanv mein chhupa ke rakhna',
+    hinglish_lyrics_2: 'Chaand sitaare tod le aaoon, teri khushi ke liye jag se lad jaaun',
+    actor_visual_clue: 'Alia Bhatt and Vedang Raina in a poignant montage of sibling devotion and fierce protection.',
+    music_director_clue: 'Composed by Achint with deeply moving lyrics by Varun Grover and vocals by Arijit Singh and Anumita Nadesan.',
+    distractors: ['Ve Kamleya', 'Satranga', 'O Maahi'],
+    youtube_video_id: 'n2dVFdqMYGA',
+    fun_fact: 'Written by National Award-winning lyricist Varun Grover as a modern lullaby of unconditional protection.'
+  },
+  {
+    song_name: 'Chal Kudiye',
+    movie_name: 'Jigra',
+    artist: 'Diljit Dosanjh, Alia Bhatt, Manpreet Singh, Harmanjeet Singh',
+    era: '2020s',
+    release_year: 2024,
+    english_riddle_1: 'Rise up and march forward, fearless girl; the sky bows before the courage burning in your chest!',
+    hinglish_lyrics_1: 'Chal kudiye, uth chal kudiye, tere kadmon ke aage jhuke aasmaan',
+    hinglish_lyrics_2: 'Toofano se darna kaisa, apni manzil ko paana hai aasaan',
+    actor_visual_clue: 'Diljit Dosanjh and Alia Bhatt perform in an empowering, high-energy studio anthem video.',
+    music_director_clue: 'Composed by Manpreet Singh with inspiring Punjabi-Hindi lyrics by Harmanjeet Singh, reuniting Diljit Dosanjh and Alia Bhatt after Ikk Kudi.',
+    distractors: ['Naina', 'Sher Khul Gaye', 'Dhindhora Baje Re'],
+    youtube_video_id: 'r6tH55syq0o',
+    fun_fact: 'Reunited Diljit Dosanjh and Alia Bhatt on vocals eight years after their acclaimed Udta Punjab duet Ikk Kudi.'
+  },
+  {
+    song_name: 'Hauli Hauli',
+    movie_name: 'Khel Khel Mein',
+    artist: 'Guru Randhawa, Yo Yo Honey Singh, Neha Kakkar',
+    era: '2020s',
+    release_year: 2024,
+    english_riddle_1: 'Slowly and gracefully you step onto the floor, and one by one every heart in the gathering falls under your spell.',
+    hinglish_lyrics_1: 'Hauli hauli chadhda nasha tera, vekh ke tenu dil dhadke mera',
+    hinglish_lyrics_2: 'Sajke aayi hai mehfil mein aaj, tere husn ka chhaya hai raaj',
+    actor_visual_clue: 'Akshay Kumar, Vaani Kapoor, Taapsee Pannu, and Fardeen Khan dance in glamorous traditional wedding attire.',
+    music_director_clue: 'Punjabi wedding party banger featuring Guru Randhawa, Yo Yo Honey Singh, and Neha Kakkar.',
+    distractors: ['Laal Peeli Akhiyaan', 'Tauba Tauba', 'Naina'],
+    youtube_video_id: 'U1JLtpJTe84',
+    fun_fact: 'Brought Akshay Kumar back to a classic multi-starrer Punjabi wedding dance sequence.'
+  },
+  {
+    song_name: 'Duur Na Karin',
+    movie_name: 'Khel Khel Mein',
+    artist: 'Vishal Mishra, Zahrah S Khan, Tanishk Bagchi, Kumaar',
+    era: '2020s',
+    release_year: 2024,
+    english_riddle_1: 'Never push me away from your embrace, my love; my breaths have learned how to live only in your closeness.',
+    hinglish_lyrics_1: 'Duur na karin mainu apne kol rakh le, mere dil di har dhadkan sun le',
+    hinglish_lyrics_2: 'Tere sang beete har ek subah aur shaam, honton pe rahe bas tera hi naam',
+    actor_visual_clue: 'Akshay Kumar and Vaani Kapoor share a romantic waltz under warm golden lights.',
+    music_director_clue: 'Romantic melody composed by Tanishk Bagchi and sung by Vishal Mishra and Zahrah S Khan.',
+    distractors: ['Khoobsurat', 'Dekhha Tenu', 'Soni Soni'],
+    youtube_video_id: '7VppHj0Rue0',
+    fun_fact: 'Showcased Vishal Mishra’s signature romantic ballad style alongside Zahrah S Khan.'
+  },
+  {
+    song_name: 'Angaaron',
+    movie_name: 'Pushpa 2 The Rule',
+    artist: 'Shreya Ghoshal, Devi Sri Prasad, Raqueeb Alam',
+    era: '2020s',
+    release_year: 2024,
+    english_riddle_1: 'Like glowing embers meeting the evening rain, our love burns fiercely yet tenderly against the whole world.',
+    hinglish_lyrics_1: 'Angaaron ka ambar sa lagta hai mera saami, uske aage jhuke duniya saari',
+    hinglish_lyrics_2: 'Dil mein basaa hai tera hi pyaar, tujhpe lutaye hum saara sansaar',
+    actor_visual_clue: 'Allu Arjun and Rashmika Mandanna perform playful, rhythmic hook steps on a vibrant film set alongside choreographer Ganesh Acharya.',
+    music_director_clue: 'Composed by Devi Sri Prasad (DSP) with Hindi lyrics by Raqueeb Alam and powerhouse vocals by Shreya Ghoshal.',
+    distractors: ['Aaj Ki Raat', 'Taras', 'Saami Saami'],
+    youtube_video_id: '7u3vM3bK2bA',
+    fun_fact: 'Released as a celebratory behind-the-scenes lyrical video featuring the cast and crew grooving together on set.'
+  },
+  {
+    song_name: 'Akhiyaan De Kol',
+    movie_name: 'Do Patti',
+    artist: 'Shilpa Rao, Tanishk Bagchi, Kausar Munir',
+    era: '2020s',
+    release_year: 2024,
+    english_riddle_1: 'Stay right in front of my eyes tonight; let the rhythm of the beat pull you closer with every glance.',
+    hinglish_lyrics_1: 'Akhiyaan de kol reh jaane de, dil di gal aaj keh jaane de',
+    hinglish_lyrics_2: 'Raat nasheeli hai, mausam jawaan hai, tujhse hi toh meri har dastaan hai',
+    actor_visual_clue: 'Kriti Sanon dazzles in a crimson outfit inside a neon-lit club sequence.',
+    music_director_clue: 'Recreated by Tanishk Bagchi with vocals by Shilpa Rao and lyrics by Kausar Munir, paying tribute to legendary folk icon Reshma.',
+    distractors: ['Raanjhan', 'Taras', 'Aaj Ki Raat'],
+    youtube_video_id: '3X9bK2pQ8wM',
+    fun_fact: 'Reimagines Pakistani folk legend Reshma’s classic melody into a sleek modern club number featuring Kriti Sanon.'
   }
 ];
 
 let lastDailySyncDate = null;
+let inFlightSyncPromise = null;
 
 /**
  * Queries Apple Music / iTunes India API for a clean, CORS-enabled studio AAC preview URL
@@ -377,6 +529,7 @@ async function discoverLiveBollywoodTracks(existingNamesSet, limit = 10) {
         const cleanTitle = item.trackName
           .replace(/\(From.*?\)/gi, '')
           .replace(/\[From.*?\]/gi, '')
+          .replace(/\s*-\s*From\s+.*$/i, '')
           .replace(/\(feat\..*?\)/gi, '')
           .replace(/\(Original.*?\)/gi, '')
           .replace(/\s*-\s*Single$/i, '')
@@ -384,6 +537,9 @@ async function discoverLiveBollywoodTracks(existingNamesSet, limit = 10) {
 
         const key = cleanTitle.toLowerCase();
         if (cleanTitle.length < 3 || existingNamesSet.has(key)) continue;
+        // Skip duplicate Reprise/Lofi variants if the base song is already in the database
+        const baseKey = key.replace(/\s*-?\s*(reprise|lofi|unplugged|slowed|reverb).*$/i, '').trim();
+        if (baseKey.length >= 3 && existingNamesSet.has(baseKey)) continue;
 
         const movieMatch =
           item.trackName.match(/From ["']([^"']+)["']/i) ||
@@ -434,9 +590,19 @@ function persistDailySongsJson() {
 
 /**
  * Adds up to `count` (default 10) latest Bollywood songs to the active database
- * for both Solo/Team Guess and 5-Second Audio Blitz.
+ * for both Solo/Team Guess and 5-Second Audio Blitz, guarded by a concurrency lock.
  */
 async function syncDailyLatestSongs(count = 10) {
+  if (inFlightSyncPromise) {
+    return await inFlightSyncPromise;
+  }
+  inFlightSyncPromise = _performDailySync(count).finally(() => {
+    inFlightSyncPromise = null;
+  });
+  return await inFlightSyncPromise;
+}
+
+async function _performDailySync(count = 10) {
   const todayStr = new Date().toISOString().slice(0, 10);
   const existingNames = getAllSongNames();
   const existingSet = new Set(existingNames.map((n) => n.toLowerCase().trim()));
@@ -552,6 +718,9 @@ async function syncDailyLatestSongs(count = 10) {
  * Automatically ensures today's 10 latest songs have been added once per calendar day
  */
 async function ensureDailyLatestSongs() {
+  if (inFlightSyncPromise) {
+    return await inFlightSyncPromise;
+  }
   const todayStr = new Date().toISOString().slice(0, 10);
   if (lastDailySyncDate === todayStr) {
     return { alreadySynced: true, date: todayStr };

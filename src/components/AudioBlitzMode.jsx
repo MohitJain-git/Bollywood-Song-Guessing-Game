@@ -3,7 +3,7 @@ import confetti from 'canvas-confetti';
 import {
   Play, Pause, RotateCcw, Volume2, Sparkles, CheckCircle2,
   XCircle, ArrowRight, Trophy, Flame, Film, Clock,
-  Headphones, Disc, Mic2, Calendar, AlertTriangle
+  Headphones, Disc, Mic2, Calendar, AlertTriangle, KeyRound
 } from 'lucide-react';
 import YouTubePlayer from './YouTubePlayer';
 import AudioBlitzTeamMode from './AudioBlitzTeamMode';
@@ -14,7 +14,8 @@ import {
   matchBollywoodSongGuess,
   triggerViewTransition,
   loadSessionState,
-  saveSessionState
+  saveSessionState,
+  buildWordPatternClue
 } from '../utils/gameTech';
 
 const BLITZ_STORAGE_KEY = 'bolly_blitz_solo_session_v1';
@@ -37,6 +38,7 @@ export default function AudioBlitzMode() {
     shuffledOptions: [],
     guessFeedback: null,
     usedMultipleChoice: false,
+    usedWordPattern: false,
     score: 0,
     streak: 0,
     bestStreak: 0,
@@ -73,6 +75,7 @@ export default function AudioBlitzMode() {
   );
   const [guessFeedback, setGuessFeedback] = useState(initialSession.guessFeedback || null);
   const [usedMultipleChoice, setUsedMultipleChoice] = useState(Boolean(initialSession.usedMultipleChoice));
+  const [usedWordPattern, setUsedWordPattern] = useState(Boolean(initialSession.usedWordPattern));
 
   // Score & Session History
   const [score, setScore] = useState(Number(initialSession.score) || 0);
@@ -100,6 +103,7 @@ export default function AudioBlitzMode() {
       shuffledOptions,
       guessFeedback,
       usedMultipleChoice,
+      usedWordPattern,
       score,
       streak,
       bestStreak,
@@ -117,6 +121,7 @@ export default function AudioBlitzMode() {
     shuffledOptions,
     guessFeedback,
     usedMultipleChoice,
+    usedWordPattern,
     score,
     streak,
     bestStreak,
@@ -198,6 +203,7 @@ export default function AudioBlitzMode() {
     setUserGuess('');
     setGuessFeedback(null);
     setUsedMultipleChoice(false);
+    setUsedWordPattern(false);
     setAudioReady(false);
 
     try {
@@ -300,9 +306,12 @@ export default function AudioBlitzMode() {
   };
 
   const calculatePoints = () => {
-    const base = hasUnlocked10s || clipSeconds === 10 ? 50 : 100;
+    let base = hasUnlocked10s || clipSeconds === 10 ? 50 : 100;
+    if (usedWordPattern) {
+      base = Math.max(10, base - 15);
+    }
     if (usedMultipleChoice) {
-      return Math.floor(base / 2);
+      return Math.max(5, Math.floor(base / 2));
     }
     return base;
   };
@@ -397,6 +406,16 @@ export default function AudioBlitzMode() {
     }
   };
 
+  const handleResetGame = () => {
+    sounds.playTick();
+    stopAudio();
+    setScore(0);
+    setStreak(0);
+    setBestStreak(0);
+    setPlayedIds([]);
+    loadNextSong(card?.id);
+  };
+
   const activeEraMeta = ERA_THEMES[playlistEra] || ERA_THEMES.all;
 
   return (
@@ -445,6 +464,15 @@ export default function AudioBlitzMode() {
           <Clock size={16} className="text-blue-400" aria-hidden="true" />
           <span>Best Streak: <strong>{bestStreak}</strong></span>
         </div>
+        <button
+          type="button"
+          onClick={handleResetGame}
+          className="stat-pill reset-pill"
+          title="Reset score, streak, and deal a fresh song"
+        >
+          <RotateCcw size={14} aria-hidden="true" />
+          <span>Reset Game</span>
+        </button>
       </div>
 
       {/* Playlist Selector */}
@@ -501,7 +529,7 @@ export default function AudioBlitzMode() {
           {/* NATIVE HTML5 AUDIO ELEMENT */}
           <audio
             ref={audioRef}
-            src={card.preview_url && card.id > 230 ? card.preview_url : `/audio_clips/${card.id}.mp3`}
+            src={card.preview_url && card.id > 240 ? card.preview_url : `/audio_clips/${card.id}.mp3`}
             preload="auto"
             crossOrigin="anonymous"
             onTimeUpdate={handleTimeUpdate}
@@ -524,7 +552,7 @@ export default function AudioBlitzMode() {
               <div className="mystery-header">
                 <span className="mystery-badge">
                   <Headphones size={14} className="text-amber-400" aria-hidden="true" />
-                  <span>Live Studio Audio Challenge • {card.era || 'Bollywood'}</span>
+                  <span>Live Studio Audio Challenge</span>
                 </span>
                 <span className="mystery-pts">
                   Potential: <strong>+{calculatePoints()} PTS</strong>
@@ -618,17 +646,56 @@ export default function AudioBlitzMode() {
                   </span>
                 </button>
 
+                {!usedWordPattern && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sounds.playTick();
+                      triggerViewTransition(() => setUsedWordPattern(true));
+                    }}
+                    className="btn btn-secondary clip-play-btn clip-full-span-btn"
+                    title="Unlock song title word pattern clue (-15 Pts)"
+                  >
+                    <KeyRound size={18} aria-hidden="true" />
+                    <span>Unlock Word Pattern Clue (-15 Pts)</span>
+                  </button>
+                )}
+
                 {isPlayingClip && (
                   <button
                     type="button"
                     onClick={handlePauseClip}
-                    className="btn btn-danger clip-play-btn animate-pop"
+                    className="btn btn-danger clip-play-btn clip-full-span-btn animate-pop"
                   >
                     <Pause size={18} aria-hidden="true" />
                     <span>⏸️ Pause Audio</span>
                   </button>
                 )}
               </div>
+
+              {/* Word Pattern Clue Box (Deducts 15 PTS) */}
+              {usedWordPattern && card.song_name && (() => {
+                const pattern = buildWordPatternClue(card.song_name);
+                return (
+                  <div className="clue-box visual-clue clue-entry-anim mt-4">
+                    <div className="clue-header">
+                      <span className="clue-badge purple">
+                        <KeyRound size={14} aria-hidden="true" />
+                        <span>Clue • Song Title Word Pattern</span>
+                      </span>
+                      <span className="clue-pts-pill purple-pill">
+                        -15 PTS ({pattern.wordCount} {pattern.wordCount === 1 ? 'Word' : 'Words'}: {pattern.letterCounts.join(', ')} letters)
+                      </span>
+                    </div>
+                    <div className="title-mask-display" aria-label="Song title letter pattern">
+                      {pattern.titleMask}
+                    </div>
+                    <p className="decoder-nudge">
+                      💡 Starts with &ldquo;{card.song_name[0]?.toUpperCase()}&rdquo; &bull; {pattern.wordCount} {pattern.wordCount === 1 ? 'word' : 'words'} total
+                    </p>
+                  </div>
+                );
+              })()}
 
               {/* Feedback Alert */}
               {guessFeedback && (

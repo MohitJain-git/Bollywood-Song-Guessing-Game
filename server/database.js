@@ -329,6 +329,55 @@ function initDatabase() {
       console.log('[DB] Curated cards synchronized (IDs 1..210).');
     }
 
+    // 4. Sync persisted daily latest songs from daily_synced_songs.json into SQLite if missing
+    if (initialDailySongs.length > 0) {
+      const checkByName = db.prepare('SELECT id FROM trivia_cards WHERE LOWER(TRIM(song_name)) = ?');
+      const checkById = db.prepare('SELECT id FROM trivia_cards WHERE id = ?');
+      const insertDailyStmt = db.prepare(`
+        INSERT INTO trivia_cards (
+          id, song_name, movie_name, artist, era, release_year,
+          english_riddle_1, english_riddle_2, hinglish_lyrics_1, hinglish_lyrics_2,
+          actor_visual_clue, music_director_clue, distractors,
+          youtube_video_id, youtube_search_query, fun_fact,
+          preview_url, is_daily_latest, added_date
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      let syncedDailyToSqlite = 0;
+      for (let i = 0; i < initialDailySongs.length; i++) {
+        const card = initialDailySongs[i];
+        const normName = (card.song_name || '').toLowerCase().trim();
+        if (!normName || checkByName.get(normName)) continue;
+        const targetId = card.id && !checkById.get(card.id) ? card.id : null;
+        if (targetId) {
+          insertDailyStmt.run(
+            targetId,
+            card.song_name,
+            card.movie_name || '',
+            card.artist || '',
+            card.era || '2020s',
+            card.release_year || 2024,
+            card.english_riddle_1 || '',
+            card.english_riddle_2 || '',
+            card.hinglish_lyrics_1 || '',
+            card.hinglish_lyrics_2 || '',
+            card.actor_visual_clue || '',
+            card.music_director_clue || '',
+            JSON.stringify(Array.isArray(card.distractors) ? card.distractors : []),
+            card.youtube_video_id || '',
+            card.youtube_search_query || `${card.song_name} ${card.movie_name} official song`,
+            card.fun_fact || '',
+            card.preview_url || '',
+            1,
+            card.added_date || new Date().toISOString().slice(0, 10)
+          );
+          syncedDailyToSqlite++;
+        }
+      }
+      if (syncedDailyToSqlite > 0) {
+        console.log(`[DB] Seeded ${syncedDailyToSqlite} persisted daily songs into SQLite.`);
+      }
+    }
+
     // Ensure all cards in trivia_cards have direct word-for-word literal translations in english_riddle_2
     const checkCard1 = db.prepare('SELECT english_riddle_2 FROM trivia_cards WHERE id = 1').get();
     if (checkCard1 && checkCard1.english_riddle_2 !== CURATED_210_SONGS[0].english_riddle_2) {
@@ -377,12 +426,14 @@ function getTriviaCard(filter = {}) {
         params.push(...cleanExcludeIds);
       }
 
-      // Prioritize unplayed cards first
-      const unplayedSql = `${sql} AND times_played = 0 ORDER BY is_daily_latest DESC, RANDOM() LIMIT 1`;
+      // Prioritize unplayed & latest (2020s / daily latest) cards first
+      const recencyOrder =
+        'is_daily_latest DESC, CASE WHEN release_year >= 2023 THEN 0 WHEN release_year >= 2020 THEN 1 ELSE 2 END ASC, RANDOM()';
+      const unplayedSql = `${sql} AND times_played = 0 ORDER BY ${recencyOrder} LIMIT 1`;
       let card = db.prepare(unplayedSql).get(...params);
 
       if (!card) {
-        const randomSql = `${sql} ORDER BY times_played ASC, is_daily_latest DESC, RANDOM() LIMIT 1`;
+        const randomSql = `${sql} ORDER BY times_played ASC, ${recencyOrder} LIMIT 1`;
         card = db.prepare(randomSql).get(...params);
       }
 
@@ -432,9 +483,17 @@ function getTriviaCard(filter = {}) {
     }
   }
 
-  // Prioritize unplayed
+  // Prioritize unplayed & strongly weight latest songs when era is 'all'
   const unplayed = pool.filter(c => c.times_played === 0);
-  const candidates = unplayed.length > 0 ? unplayed : pool;
+  let candidates = unplayed.length > 0 ? unplayed : pool;
+  if (!era || era === 'all') {
+    const latestCandidates = candidates.filter(
+      c => c.is_daily_latest || (c.release_year && c.release_year >= 2020) || c.era === '2020s'
+    );
+    if (latestCandidates.length > 0 && Math.random() < 0.7) {
+      candidates = latestCandidates;
+    }
+  }
   const picked = candidates[Math.floor(Math.random() * candidates.length)];
 
   return JSON.parse(JSON.stringify(picked));
@@ -492,10 +551,18 @@ function recordCardPlay(id, isCorrect = false) {
 }
 
 function insertTriviaCard(card) {
+  const normName = (card.song_name || '').toLowerCase().trim();
+  if (!normName) return null;
+
   let assignedId = null;
 
   if (db && !useMemoryFallback) {
     try {
+      const existingRow = db.prepare('SELECT id FROM trivia_cards WHERE LOWER(TRIM(song_name)) = ?').get(normName);
+      if (existingRow) {
+        return Number(existingRow.id);
+      }
+
       const stmt = db.prepare(`
         INSERT INTO trivia_cards (
           song_name, movie_name, artist, era, release_year,
@@ -531,6 +598,11 @@ function insertTriviaCard(card) {
     } catch (err) {
       console.warn('[DB] insertTriviaCard SQLite failed, adding to memory catalog:', err.message);
     }
+  }
+
+  const existingMem = inMemoryCards.find(c => (c.song_name || '').toLowerCase().trim() === normName);
+  if (existingMem && !assignedId) {
+    return existingMem.id;
   }
 
   const newId = assignedId || (inMemoryCards.length + 1);
@@ -602,7 +674,7 @@ function getCandidateSongForGeneration(era) {
         sql += ' AND era = ?';
         params.push(era);
       }
-      sql += ' ORDER BY popularity DESC, RANDOM() LIMIT 1';
+      sql += ' ORDER BY release_year DESC, popularity DESC, RANDOM() LIMIT 1';
       return db.prepare(sql).get(...params);
     } catch (err) {
       console.warn('[DB] getCandidateSongForGeneration SQLite failed:', err.message);

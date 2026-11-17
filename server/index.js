@@ -233,10 +233,10 @@ app.post('/api/trivia/daily-sync', async (req, res) => {
   }
 });
 
-// Vercel Cron / automated daily 10 latest songs endpoint
+// Vercel Cron / automated daily 10 latest songs endpoint (idempotent for current day)
 app.get('/api/cron/daily-songs', async (req, res) => {
   try {
-    const result = await syncDailyLatestSongs(10);
+    const result = await ensureDailyLatestSongs();
     res.json({
       ...result,
       stats: getDatabaseStats()

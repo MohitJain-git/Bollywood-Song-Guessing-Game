@@ -191,8 +191,11 @@ export default function SoloMode({ onOpenSettings }) {
       case 5: base = 20; break;
       default: base = 20;
     }
+    if (smartHint) {
+      base = Math.max(10, base - 15);
+    }
     if (usedMultipleChoice) {
-      return Math.floor(base / 2);
+      return Math.max(5, Math.floor(base / 2));
     }
     return base;
   };
@@ -307,6 +310,15 @@ export default function SoloMode({ onOpenSettings }) {
     }
   };
 
+  const handleResetGame = () => {
+    sounds.playTick();
+    setScore(0);
+    setStreak(0);
+    setBestStreak(0);
+    setPlayedIds([]);
+    loadNextCard(card?.id);
+  };
+
   const activeEraMeta = ERA_THEMES[selectedEra] || ERA_THEMES.all;
 
   return (
@@ -326,6 +338,15 @@ export default function SoloMode({ onOpenSettings }) {
             <span>Best: <strong>{bestStreak}</strong></span>
           </div>
         )}
+        <button
+          type="button"
+          onClick={handleResetGame}
+          className="stat-pill reset-pill"
+          title="Reset score, streak, and deal a fresh song"
+        >
+          <RotateCcw size={14} aria-hidden="true" />
+          <span>Reset Game</span>
+        </button>
       </div>
 
       {/* Era Selector Filter with Ambient Theme Shifting */}

@@ -254,3 +254,20 @@ export function saveSessionState(storageKey, stateObj) {
     // Ignore storage quota errors
   }
 }
+
+/**
+ * Builds a structured Song Title Word Pattern clue (first letter of each word + underscores)
+ */
+export function buildWordPatternClue(title = '') {
+  const words = title.trim().split(/\s+/).filter(Boolean);
+  const maskedWords = words.map((w) => {
+    const clean = w.replace(/[^a-zA-Z0-9]/g, '');
+    if (clean.length <= 1) return clean.toUpperCase();
+    return clean[0].toUpperCase() + ' ' + '_ '.repeat(clean.length - 1).trim();
+  });
+  return {
+    titleMask: maskedWords.join('   •   '),
+    wordCount: words.length,
+    letterCounts: words.map((w) => w.replace(/[^a-zA-Z0-9]/g, '').length)
+  };
+}

@@ -4,7 +4,7 @@ import {
   Play, Pause, RotateCcw, Sparkles, Check, X,
   ArrowRight, Trophy, Flame, Film, Clock,
   Headphones, Disc, Mic2, Calendar, ShieldAlert,
-  Eye, EyeOff, Search, Zap, Edit2
+  Eye, EyeOff, Search, Zap, Edit2, KeyRound
 } from 'lucide-react';
 import YouTubePlayer from './YouTubePlayer';
 import { sounds } from './SoundEffects';
@@ -14,7 +14,8 @@ import {
   matchBollywoodSongGuess,
   triggerViewTransition,
   loadSessionState,
-  saveSessionState
+  saveSessionState,
+  buildWordPatternClue
 } from '../utils/gameTech';
 
 const TEAM_BLITZ_STORAGE_KEY = 'bolly_team_blitz_session_v1';
@@ -46,6 +47,7 @@ export default function AudioBlitzTeamMode({ initialEra = 'all' }) {
     isStealPhase: false,
     stealInput: '',
     timeLeft: 45,
+    timerEnabled: true,
     winnerTeam: null,
     playedIds: []
   });
@@ -86,6 +88,7 @@ export default function AudioBlitzTeamMode({ initialEra = 'all' }) {
   // Team guessing controls
   const [guessStyle, setGuessStyle] = useState(initialSession.guessStyle || 'type'); // 'type' | 'host'
   const [usedMultipleChoice, setUsedMultipleChoice] = useState(Boolean(initialSession.usedMultipleChoice));
+  const [usedWordPattern, setUsedWordPattern] = useState(Boolean(initialSession.usedWordPattern));
   const [teamGuessInput, setTeamGuessInput] = useState(initialSession.teamGuessInput || '');
   const [shuffledOptions, setShuffledOptions] = useState(
     Array.isArray(initialSession.shuffledOptions) ? initialSession.shuffledOptions : []
@@ -100,6 +103,9 @@ export default function AudioBlitzTeamMode({ initialEra = 'all' }) {
   const [showHostPeek, setShowHostPeek] = useState(false);
 
   // Timer, Winner & Session History
+  const [timerEnabled, setTimerEnabled] = useState(
+    initialSession.timerEnabled !== undefined ? Boolean(initialSession.timerEnabled) : true
+  );
   const [timeLeft, setTimeLeft] = useState(
     typeof initialSession.timeLeft === 'number' && initialSession.timeLeft > 0
       ? initialSession.timeLeft
@@ -133,12 +139,14 @@ export default function AudioBlitzTeamMode({ initialEra = 'all' }) {
       isAnswerRevealed,
       guessStyle,
       usedMultipleChoice,
+      usedWordPattern,
       teamGuessInput,
       shuffledOptions,
       guessFeedback,
       isStealPhase,
       stealInput,
       timeLeft,
+      timerEnabled,
       winnerTeam,
       playedIds
     });
@@ -154,12 +162,14 @@ export default function AudioBlitzTeamMode({ initialEra = 'all' }) {
     isAnswerRevealed,
     guessStyle,
     usedMultipleChoice,
+    usedWordPattern,
     teamGuessInput,
     shuffledOptions,
     guessFeedback,
     isStealPhase,
     stealInput,
     timeLeft,
+    timerEnabled,
     winnerTeam,
     playedIds
   ]);
@@ -242,6 +252,7 @@ export default function AudioBlitzTeamMode({ initialEra = 'all' }) {
     setStealInput('');
     setIsStealPhase(false);
     setUsedMultipleChoice(false);
+    setUsedWordPattern(false);
     setGuessFeedback(null);
     setShowHostPeek(false);
 
@@ -292,7 +303,7 @@ export default function AudioBlitzTeamMode({ initialEra = 'all' }) {
 
   // Round countdown timer
   useEffect(() => {
-    if (!timerActive || isAnswerRevealed || timeLeft <= 0) return;
+    if (!timerEnabled || !timerActive || isAnswerRevealed || timeLeft <= 0) return;
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
@@ -310,7 +321,7 @@ export default function AudioBlitzTeamMode({ initialEra = 'all' }) {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [timerActive, isAnswerRevealed, timeLeft, isStealPhase]);
+  }, [timerEnabled, timerActive, isAnswerRevealed, timeLeft, isStealPhase]);
 
   const handleTimeUpdate = () => {
     if (!audioRef.current) return;
@@ -359,9 +370,12 @@ export default function AudioBlitzTeamMode({ initialEra = 'all' }) {
   };
 
   const calculatePoints = () => {
-    const base = hasUnlocked10s || clipSeconds === 10 ? 50 : 100;
+    let base = hasUnlocked10s || clipSeconds === 10 ? 50 : 100;
+    if (usedWordPattern) {
+      base = Math.max(10, base - 15);
+    }
     if (usedMultipleChoice) {
-      return Math.floor(base / 2);
+      return Math.max(5, Math.floor(base / 2));
     }
     return base;
   };
@@ -481,11 +495,14 @@ export default function AudioBlitzTeamMode({ initialEra = 'all' }) {
   };
 
   const handleRestartGame = () => {
+    sounds.playTick();
+    stopAudio();
     setTeams(teams.map((t) => ({ ...t, score: 0 })));
     setActiveTeamIdx(0);
     setRoundNumber(1);
     setWinnerTeam(null);
-    loadNewRound();
+    setPlayedIds([]);
+    loadNewRound(card?.id);
   };
 
   const activeTeam = teams[activeTeamIdx];
@@ -617,20 +634,43 @@ export default function AudioBlitzTeamMode({ initialEra = 'all' }) {
               <span className="round-target">• First to {targetScore} Pts</span>
             </div>
 
-            {card && !isAnswerRevealed && (
-              <button
-                onClick={() => setShowHostPeek((prev) => !prev)}
-                className="host-peek-btn"
-                title="Host secret answer checker"
-              >
-                {showHostPeek ? <EyeOff size={14} /> : <Eye size={14} />}
-                <span>{showHostPeek ? 'Hide Secret Answer' : 'Host Secret Peek'}</span>
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {card && !isAnswerRevealed && (
+                <button
+                  onClick={() => setShowHostPeek((prev) => !prev)}
+                  className="host-peek-btn"
+                  title="Host secret answer checker"
+                >
+                  {showHostPeek ? <EyeOff size={14} /> : <Eye size={14} />}
+                  <span>{showHostPeek ? 'Hide Secret Answer' : 'Host Secret Peek'}</span>
+                </button>
+              )}
 
-            <div className={`timer-badge ${timeLeft <= 10 ? 'timer-warning' : ''}`}>
-              <Clock size={16} />
-              <span>{timeLeft}s</span>
+              <button
+                type="button"
+                onClick={handleRestartGame}
+                className="host-peek-btn"
+                title="Reset team scores and start a fresh match"
+              >
+                <RotateCcw size={14} />
+                <span>Reset Game</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sounds.playTick();
+                  setTimerEnabled((prev) => !prev);
+                }}
+                className={`timer-toggle-btn ${
+                  timerEnabled ? (timeLeft <= 10 ? 'timer-warning' : 'timer-on') : 'timer-off'
+                }`}
+                title="Toggle optional round countdown timer ON/OFF"
+              >
+                <Clock size={15} />
+                <span>{timerEnabled ? `${timeLeft}s` : 'Timer Off'}</span>
+                <span className="timer-state-pill">{timerEnabled ? 'ON' : 'OFF'}</span>
+              </button>
             </div>
           </div>
 
@@ -688,7 +728,7 @@ export default function AudioBlitzTeamMode({ initialEra = 'all' }) {
               {/* Native HTML5 Audio Element */}
               <audio
                 ref={audioRef}
-                src={card.preview_url && card.id > 230 ? card.preview_url : `/audio_clips/${card.id}.mp3`}
+                src={card.preview_url && card.id > 240 ? card.preview_url : `/audio_clips/${card.id}.mp3`}
                 preload="auto"
                 crossOrigin="anonymous"
                 onTimeUpdate={handleTimeUpdate}
@@ -711,53 +751,60 @@ export default function AudioBlitzTeamMode({ initialEra = 'all' }) {
                     <div className="mystery-header">
                       <span className="mystery-badge">
                         <Headphones size={14} className="text-amber-400" aria-hidden="true" />
-                        <span>5-Sec Team Audio Battle • {card.era || 'Bollywood'}</span>
+                        <span>5-Sec Team Audio Battle</span>
                       </span>
                       <span className="mystery-pts">
                         Active Value: <strong>+{ isStealPhase ? calculateStealPoints() : calculatePoints() } PTS</strong>
                       </span>
                     </div>
 
-                    <div className="vinyl-turntable-stage">
-                      <div className={`vinyl-disc ${isPlayingClip ? 'spinning' : ''}`}>
-                        <div className="vinyl-grooves"></div>
-                        <div className="vinyl-center-label">
-                          <Disc size={28} className="text-amber-950" aria-hidden="true" />
+                    <div className={`audio-waveform-box ${isPlayingClip ? 'is-playing' : ''}`}>
+                      <div className={`vinyl-disc-turntable ${isPlayingClip ? 'spinning' : ''}`} aria-hidden="true">
+                        <div className="vinyl-grooves">
+                          <div className="vinyl-center-label">
+                            <span>🎵</span>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="audio-waveform-box">
-                        <div className="waveform-status-row">
-                          <span className="clip-mode-tag">
-                            {isPlayingClip
-                              ? `🔊 Playing ${clipSeconds}s Intro Snippet...`
-                              : `⏸️ Ready (${clipSeconds}s Mode)`}
-                          </span>
-                          <span className="clip-time-counter">
-                            {Math.min(currentTime, clipSeconds).toFixed(1)}s / {clipSeconds}.0s
-                          </span>
-                        </div>
-
-                        <div className="clip-progress-track">
-                          <div
-                            className="clip-progress-fill"
-                            style={{ width: `${Math.min(100, (currentTime / clipSeconds) * 100)}%` }}
+                      <div className="waveform-bars" aria-hidden="true">
+                        {freqBars.map((heightPct, idx) => (
+                          <span
+                            key={idx}
+                            className="wave-bar"
+                            style={{
+                              height: isPlayingClip ? `${heightPct}%` : '18%',
+                              animationDelay: `${idx * 0.04}s`
+                            }}
                           />
-                        </div>
+                        ))}
+                      </div>
 
-                        <div className={`sound-bars ${isPlayingClip ? 'active' : ''}`} aria-hidden="true">
-                          {freqBars.map((heightPct, idx) => (
-                            <span
-                              key={idx}
-                              className="bar"
-                              style={{ height: isPlayingClip ? `${heightPct}%` : '22%' }}
-                            />
-                          ))}
-                        </div>
+                      <div className="audio-progress-container">
+                        <div
+                          className="audio-progress-fill"
+                          style={{ width: `${Math.min(100, (currentTime / clipSeconds) * 100)}%` }}
+                        />
+                      </div>
+
+                      <div className="audio-timer-overlay">
+                        {isPlayingClip ? (
+                          <div className="playing-state-tag">
+                            <span>
+                              🔊 Playing Studio Cut: <strong>{currentTime.toFixed(1)}s</strong> / {clipSeconds}.0s
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="idle-state-tag">
+                            {hasPlayed5s
+                              ? `Paused at ${currentTime.toFixed(1)}s • Replay 5s or Unlock 10s!`
+                              : 'Press Play to hear the opening 5 seconds of the song!'}
+                          </span>
+                        )}
                       </div>
                     </div>
 
-                    <div className="blitz-playback-controls">
+                    <div className="clip-control-buttons">
                       <button
                         type="button"
                         onClick={() => handlePlayClip(5)}
@@ -786,11 +833,26 @@ export default function AudioBlitzTeamMode({ initialEra = 'all' }) {
                         </span>
                       </button>
 
+                      {!usedWordPattern && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sounds.playTick();
+                            triggerViewTransition(() => setUsedWordPattern(true));
+                          }}
+                          className="btn btn-secondary clip-play-btn clip-full-span-btn"
+                          title="Unlock song title word pattern clue (-15 Pts)"
+                        >
+                          <KeyRound size={18} />
+                          <span>Unlock Word Pattern Clue (-15 Pts)</span>
+                        </button>
+                      )}
+
                       {isPlayingClip && (
                         <button
                           type="button"
                           onClick={handlePauseClip}
-                          className="btn btn-danger clip-play-btn animate-pop"
+                          className="btn btn-danger clip-play-btn clip-full-span-btn animate-pop"
                         >
                           <Pause size={18} />
                           <span>⏸️ Pause Audio</span>
@@ -798,6 +860,30 @@ export default function AudioBlitzTeamMode({ initialEra = 'all' }) {
                       )}
                     </div>
                   </div>
+
+                  {/* Word Pattern Clue Box (Deducts 15 PTS) */}
+                  {usedWordPattern && card.song_name && (() => {
+                    const pattern = buildWordPatternClue(card.song_name);
+                    return (
+                      <div className="clue-box visual-clue clue-entry-anim mb-4">
+                        <div className="clue-header">
+                          <span className="clue-badge purple">
+                            <KeyRound size={14} aria-hidden="true" />
+                            <span>Clue • Song Title Word Pattern</span>
+                          </span>
+                          <span className="clue-pts-pill purple-pill">
+                            -15 PTS ({pattern.wordCount} {pattern.wordCount === 1 ? 'Word' : 'Words'}: {pattern.letterCounts.join(', ')} letters)
+                          </span>
+                        </div>
+                        <div className="title-mask-display" aria-label="Song title letter pattern">
+                          {pattern.titleMask}
+                        </div>
+                        <p className="decoder-nudge">
+                          💡 Starts with &ldquo;{card.song_name[0]?.toUpperCase()}&rdquo; &bull; {pattern.wordCount} {pattern.wordCount === 1 ? 'word' : 'words'} total
+                        </p>
+                      </div>
+                    );
+                  })()}
 
                   {/* Feedback Banner */}
                   {guessFeedback && (

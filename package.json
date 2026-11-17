@@ -1,7 +1,7 @@
 {
   "name": "bollywood-song-guessing-game",
   "version": "1.0.0",
-  "description": "A fun Streamlit-based trivia game where you guess Bollywood songs from AI-generated lyric clues and translations.",
+  "description": "Interactive Bollywood song guessing game with 5-Second Audio Blitz, Lyrical Riddles, Team Battle, and daily latest Bollywood track updates.",
   "main": "index.js",
   "scripts": {
     "dev": "vite",

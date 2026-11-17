@@ -9,7 +9,7 @@ const { execFileSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const { initDatabase, getCardById } = require('../server/database');
-const { syncDailyLatestSongs } = require('../server/dailySongsService');
+const { ensureDailyLatestSongs } = require('../server/dailySongsService');
 
 function findFfmpeg() {
   const candidates = ['/opt/homebrew/bin/ffmpeg', '/usr/local/bin/ffmpeg', '/usr/bin/ffmpeg', 'ffmpeg'];
@@ -21,7 +21,11 @@ function findFfmpeg() {
 
 (async () => {
   initDatabase();
-  const result = await syncDailyLatestSongs(10);
+  const result = await ensureDailyLatestSongs();
+  if (result.alreadySynced) {
+    console.log(`[Daily 10 Sync] Date: ${result.date} | Already synced ${result.addedToday || 10} songs today.`);
+    return;
+  }
   console.log(`[Daily 10 Sync] Date: ${result.date} | Added: ${result.addedCount} songs`);
 
   const ffmpegBin = findFfmpeg();
