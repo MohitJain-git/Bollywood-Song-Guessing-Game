@@ -372,7 +372,7 @@ export default function AudioBlitzTeamMode({ initialEra = 'all' }) {
   const calculatePoints = () => {
     let base = hasUnlocked10s || clipSeconds === 10 ? 50 : 100;
     if (usedWordPattern) {
-      base = Math.max(10, base - 15);
+      base = Math.max(10, base - 30);
     }
     if (usedMultipleChoice) {
       return Math.max(5, Math.floor(base / 2));
@@ -833,7 +833,7 @@ export default function AudioBlitzTeamMode({ initialEra = 'all' }) {
                         </span>
                       </button>
 
-                      {!usedWordPattern && (
+                      {!usedWordPattern && !usedMultipleChoice && (
                         <button
                           type="button"
                           onClick={() => {
@@ -841,10 +841,10 @@ export default function AudioBlitzTeamMode({ initialEra = 'all' }) {
                             triggerViewTransition(() => setUsedWordPattern(true));
                           }}
                           className="btn btn-secondary clip-play-btn clip-full-span-btn"
-                          title="Unlock song title word pattern clue (-15 Pts)"
+                          title="Unlock song title word pattern clue (-30 Pts; disables Multiple Choice)"
                         >
                           <KeyRound size={18} />
-                          <span>Unlock Word Pattern Clue (-15 Pts)</span>
+                          <span>Unlock Word Pattern Clue (-30 Pts)</span>
                         </button>
                       )}
 
@@ -861,7 +861,7 @@ export default function AudioBlitzTeamMode({ initialEra = 'all' }) {
                     </div>
                   </div>
 
-                  {/* Word Pattern Clue Box (Deducts 15 PTS) */}
+                  {/* Word Pattern Clue Box (Deducts 30 PTS) */}
                   {usedWordPattern && card.song_name && (() => {
                     const pattern = buildWordPatternClue(card.song_name);
                     return (
@@ -872,7 +872,7 @@ export default function AudioBlitzTeamMode({ initialEra = 'all' }) {
                             <span>Clue • Song Title Word Pattern</span>
                           </span>
                           <span className="clue-pts-pill purple-pill">
-                            -15 PTS ({pattern.wordCount} {pattern.wordCount === 1 ? 'Word' : 'Words'}: {pattern.letterCounts.join(', ')} letters)
+                            -30 PTS ({pattern.wordCount} {pattern.wordCount === 1 ? 'Word' : 'Words'}: {pattern.letterCounts.join(', ')} letters)
                           </span>
                         </div>
                         <div className="title-mask-display" aria-label="Song title letter pattern">
@@ -948,21 +948,23 @@ export default function AudioBlitzTeamMode({ initialEra = 'all' }) {
                             </form>
 
                             {!usedMultipleChoice ? (
-                              <div className="mc-hint-box text-center mt-2">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    sounds.playTick();
-                                    setUsedMultipleChoice(true);
-                                  }}
-                                  className="btn-hint-outline"
-                                >
-                                  <Sparkles size={16} />
-                                  <span>
-                                    💡 Need Choices? Reveal 4 Options (Half Points: {Math.floor(calculatePoints() / 2)} PTS)
-                                  </span>
-                                </button>
-                              </div>
+                              !usedWordPattern && (
+                                <div className="mc-hint-box text-center mt-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      sounds.playTick();
+                                      setUsedMultipleChoice(true);
+                                    }}
+                                    className="btn-hint-outline"
+                                  >
+                                    <Sparkles size={16} />
+                                    <span>
+                                      💡 Need Choices? Reveal 4 Options (Half Points: {Math.floor(calculatePoints() / 2)} PTS)
+                                    </span>
+                                  </button>
+                                </div>
+                              )
                             ) : (
                               <div className="open-choices-section animate-scale-up mt-3">
                                 <div className="open-choices-header">
@@ -1054,19 +1056,21 @@ export default function AudioBlitzTeamMode({ initialEra = 'all' }) {
                         </form>
 
                         {!usedMultipleChoice ? (
-                          <div className="mc-hint-box text-center mt-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                sounds.playTick();
-                                setUsedMultipleChoice(true);
-                              }}
-                              className="btn-hint-outline"
-                            >
-                              <Sparkles size={16} />
-                              <span>💡 Reveal 4 Choices for Steal (Half Points)</span>
-                            </button>
-                          </div>
+                          !usedWordPattern && (
+                            <div className="mc-hint-box text-center mt-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  sounds.playTick();
+                                  setUsedMultipleChoice(true);
+                                }}
+                                className="btn-hint-outline"
+                              >
+                                <Sparkles size={16} />
+                                <span>💡 Reveal 4 Choices for Steal (Half Points)</span>
+                              </button>
+                            </div>
+                          )
                         ) : (
                           <div className="options-grid mt-3">
                             {shuffledOptions.map((opt, idx) => (

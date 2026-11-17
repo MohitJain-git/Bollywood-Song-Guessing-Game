@@ -252,7 +252,7 @@ export default function TeamPartyMode() {
       default: base = 20;
     }
     if (smartHint) {
-      base = Math.max(10, base - 15);
+      base = Math.max(10, base - 30);
     }
     if (usedMultipleChoice) {
       return Math.max(5, Math.floor(base / 2)); // Halve points if multiple choice hint used
@@ -577,6 +577,7 @@ export default function TeamPartyMode() {
                 smartHint={smartHint}
                 onRequestSmartHint={handleRequestSmartHint}
                 loadingSmartHint={loadingSmartHint}
+                usedMultipleChoice={usedMultipleChoice}
               />
 
               {/* Feedback Banner */}
@@ -641,21 +642,23 @@ export default function TeamPartyMode() {
                             </button>
                           </form>
 
-                          {/* Multiple Choice as Hint (Halves Points) */}
+                          {/* Multiple Choice as Hint (Halves Points) - mutually exclusive with Word Pattern Clue */}
                           {!usedMultipleChoice ? (
-                            <div className="mc-hint-box text-center mt-2">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  sounds.playTick();
-                                  setUsedMultipleChoice(true);
-                                }}
-                                className="btn-hint-outline"
-                              >
-                                <Sparkles size={16} />
-                                <span>💡 Need Choices? Reveal 4 Options (Multiple Choice Hint — Half Points: {Math.floor(calculatePoints() / 2)} PTS)</span>
-                              </button>
-                            </div>
+                            !smartHint && (
+                              <div className="mc-hint-box text-center mt-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    sounds.playTick();
+                                    setUsedMultipleChoice(true);
+                                  }}
+                                  className="btn-hint-outline"
+                                >
+                                  <Sparkles size={16} />
+                                  <span>💡 Need Choices? Reveal 4 Options (Multiple Choice Hint — Half Points: {Math.floor(calculatePoints() / 2)} PTS)</span>
+                                </button>
+                              </div>
+                            )
                           ) : (
                             <div className="open-choices-section animate-scale-up mt-3">
                               <div className="open-choices-header">

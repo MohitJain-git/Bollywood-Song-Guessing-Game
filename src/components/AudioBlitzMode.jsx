@@ -308,7 +308,7 @@ export default function AudioBlitzMode() {
   const calculatePoints = () => {
     let base = hasUnlocked10s || clipSeconds === 10 ? 50 : 100;
     if (usedWordPattern) {
-      base = Math.max(10, base - 15);
+      base = Math.max(10, base - 30);
     }
     if (usedMultipleChoice) {
       return Math.max(5, Math.floor(base / 2));
@@ -646,7 +646,7 @@ export default function AudioBlitzMode() {
                   </span>
                 </button>
 
-                {!usedWordPattern && (
+                {!usedWordPattern && !usedMultipleChoice && (
                   <button
                     type="button"
                     onClick={() => {
@@ -654,10 +654,10 @@ export default function AudioBlitzMode() {
                       triggerViewTransition(() => setUsedWordPattern(true));
                     }}
                     className="btn btn-secondary clip-play-btn clip-full-span-btn"
-                    title="Unlock song title word pattern clue (-15 Pts)"
+                    title="Unlock song title word pattern clue (-30 Pts; disables Multiple Choice)"
                   >
                     <KeyRound size={18} aria-hidden="true" />
-                    <span>Unlock Word Pattern Clue (-15 Pts)</span>
+                    <span>Unlock Word Pattern Clue (-30 Pts)</span>
                   </button>
                 )}
 
@@ -673,7 +673,7 @@ export default function AudioBlitzMode() {
                 )}
               </div>
 
-              {/* Word Pattern Clue Box (Deducts 15 PTS) */}
+              {/* Word Pattern Clue Box (Deducts 30 PTS) */}
               {usedWordPattern && card.song_name && (() => {
                 const pattern = buildWordPatternClue(card.song_name);
                 return (
@@ -684,7 +684,7 @@ export default function AudioBlitzMode() {
                         <span>Clue • Song Title Word Pattern</span>
                       </span>
                       <span className="clue-pts-pill purple-pill">
-                        -15 PTS ({pattern.wordCount} {pattern.wordCount === 1 ? 'Word' : 'Words'}: {pattern.letterCounts.join(', ')} letters)
+                        -30 PTS ({pattern.wordCount} {pattern.wordCount === 1 ? 'Word' : 'Words'}: {pattern.letterCounts.join(', ')} letters)
                       </span>
                     </div>
                     <div className="title-mask-display" aria-label="Song title letter pattern">
@@ -738,8 +738,8 @@ export default function AudioBlitzMode() {
                   </button>
                 </form>
 
-                {/* Hint Buttons Row */}
-                {!usedMultipleChoice && (
+                {/* Hint Buttons Row (Mutually exclusive with Word Pattern Clue) */}
+                {!usedMultipleChoice && !usedWordPattern && (
                   <div className="blitz-lifelines-row">
                     <button
                       type="button"

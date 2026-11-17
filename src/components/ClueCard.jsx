@@ -16,7 +16,8 @@ export default function ClueCard({
   isAnswerRevealed,
   smartHint,
   onRequestSmartHint,
-  loadingSmartHint
+  loadingSmartHint,
+  usedMultipleChoice = false
 }) {
   if (!card) return null;
 
@@ -126,7 +127,7 @@ export default function ClueCard({
         </div>
       )}
 
-      {/* Word Pattern & Shayari Clue (Deducts 15 PTS) */}
+      {/* Word Pattern & Shayari Clue (Deducts 30 PTS) */}
       {smartHint && !isAnswerRevealed && (
         <div className="clue-box visual-clue clue-entry-anim">
           <div className="clue-header">
@@ -134,7 +135,7 @@ export default function ClueCard({
               <KeyRound size={14} aria-hidden="true" />
               <span>Clue • Word Pattern & Shayari Decoder</span>
             </span>
-            <span className="clue-pts-pill purple-pill">-15 PTS ({smartHint.wordCount} {smartHint.wordCount === 1 ? 'Word' : 'Words'}: {smartHint.letterCounts?.join(', ')} letters)</span>
+            <span className="clue-pts-pill purple-pill">-30 PTS ({smartHint.wordCount} {smartHint.wordCount === 1 ? 'Word' : 'Words'}: {smartHint.letterCounts?.join(', ')} letters)</span>
           </div>
 
           <div className="title-mask-display" aria-label="Song title letter pattern">
@@ -179,19 +180,19 @@ export default function ClueCard({
             </button>
           )}
 
-          {!smartHint && onRequestSmartHint && (
+          {!smartHint && !usedMultipleChoice && onRequestSmartHint && (
             <button
               type="button"
               onClick={onRequestSmartHint}
               disabled={loadingSmartHint}
               className="btn btn-secondary reveal-clue-btn"
-              title="Unlock the song title word pattern & Shayari clue (-15 Pts)"
+              title="Unlock the song title word pattern & Shayari clue (-30 Pts; disables Multiple Choice)"
             >
               <KeyRound size={18} aria-hidden="true" />
               <span>
                 {loadingSmartHint
                   ? 'Unlocking Word Pattern...'
-                  : 'Unlock Word Pattern & Shayari Clue (-15 Pts)'}
+                  : 'Unlock Word Pattern & Shayari Clue (-30 Pts)'}
               </span>
             </button>
           )}

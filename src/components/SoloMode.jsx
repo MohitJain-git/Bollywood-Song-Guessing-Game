@@ -192,7 +192,7 @@ export default function SoloMode({ onOpenSettings }) {
       default: base = 20;
     }
     if (smartHint) {
-      base = Math.max(10, base - 15);
+      base = Math.max(10, base - 30);
     }
     if (usedMultipleChoice) {
       return Math.max(5, Math.floor(base / 2));
@@ -411,6 +411,7 @@ export default function SoloMode({ onOpenSettings }) {
             smartHint={smartHint}
             onRequestSmartHint={handleRequestSmartHint}
             loadingSmartHint={loadingSmartHint}
+            usedMultipleChoice={usedMultipleChoice}
           />
 
           {/* Accessible Feedback Banner (Uses Icon + Text + Color per WCAG 1.4.1) */}
@@ -455,21 +456,23 @@ export default function SoloMode({ onOpenSettings }) {
                 </button>
               </form>
 
-              {/* Multiple Choice as Hint (Halves Points) */}
+              {/* Multiple Choice as Hint (Halves Points) - mutually exclusive with Word Pattern Clue */}
               {!usedMultipleChoice ? (
-                <div className="mc-hint-box text-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sounds.playTick();
-                      triggerViewTransition(() => setUsedMultipleChoice(true));
-                    }}
-                    className="btn-hint-outline"
-                  >
-                    <Sparkles size={16} aria-hidden="true" />
-                    <span>💡 Need Options? Reveal 4 Multiple-Choice Options (Half Points: {Math.floor(calculatePoints() / 2)} PTS)</span>
-                  </button>
-                </div>
+                !smartHint && (
+                  <div className="mc-hint-box text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sounds.playTick();
+                        triggerViewTransition(() => setUsedMultipleChoice(true));
+                      }}
+                      className="btn-hint-outline"
+                    >
+                      <Sparkles size={16} aria-hidden="true" />
+                      <span>💡 Need Options? Reveal 4 Multiple-Choice Options (Half Points: {Math.floor(calculatePoints() / 2)} PTS)</span>
+                    </button>
+                  </div>
+                )
               ) : (
                 <div className="open-choices-section clue-entry-anim mt-3">
                   <div className="open-choices-header">
