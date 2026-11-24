@@ -2224,5 +2224,59 @@
     "id": 288,
     "times_played": 0,
     "times_correct": 0
+  },
+  {
+    "song_name": "Jagga Jiteya",
+    "movie_name": "Main Character Energy",
+    "artist": "Daler Mehndi, Dee MC, Shashwat Sachdev & Kumaar",
+    "era": "2020s",
+    "release_year": 2026,
+    "english_riddle_1": "My heart beats to a new rhythm every time your eyes meet mine, turning a fleeting glance into an unforgettable melody.",
+    "english_riddle_2": "Every moment your only feeling is, you only my every hope is",
+    "hinglish_lyrics_1": "Teri aankhon mein jo jaadu hai, mera dil ab bekaboo hai",
+    "hinglish_lyrics_2": "Har lamha tera hi ehsaas hai, tu hi meri har aas hai",
+    "actor_visual_clue": "A vibrant 2026 Bollywood musical sequence from \"Main Character Energy\" featuring chart-topping choreography.",
+    "music_director_clue": "Brought to life by Daler Mehndi, Dee MC, Shashwat Sachdev & Kumaar (2026 release).",
+    "distractors": [
+      "Aaj Ki Raat",
+      "Kesariya",
+      "Tauba Tauba"
+    ],
+    "youtube_video_id": "",
+    "youtube_search_query": "Jagga Jiteya Main Character Energy Daler Mehndi, Dee MC, Shashwat Sachdev & Kumaar official song",
+    "fun_fact": "Trending 2026 Bollywood release from \"Main Character Energy\" performed by Daler Mehndi, Dee MC, Shashwat Sachdev & Kumaar.",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/f4/58/93/f458937f-70e2-61d9-829f-05c2a6979979/mzaf_12739005427800784527.plus.aac.p.m4a",
+    "is_daily_latest": true,
+    "added_date": "2026-11-24",
+    "id": 289,
+    "times_played": 0,
+    "times_correct": 0
+  },
+  {
+    "song_name": "Cyclone",
+    "movie_name": "Main Character Energy",
+    "artist": "Shashwat Sachdev & KING",
+    "era": "2020s",
+    "release_year": 2026,
+    "english_riddle_1": "My heart beats to a new rhythm every time your eyes meet mine, turning a fleeting glance into an unforgettable melody.",
+    "english_riddle_2": "Every moment your only feeling is, you only my every hope is",
+    "hinglish_lyrics_1": "Teri aankhon mein jo jaadu hai, mera dil ab bekaboo hai",
+    "hinglish_lyrics_2": "Har lamha tera hi ehsaas hai, tu hi meri har aas hai",
+    "actor_visual_clue": "A vibrant 2026 Bollywood musical sequence from \"Main Character Energy\" featuring chart-topping choreography.",
+    "music_director_clue": "Brought to life by Shashwat Sachdev & KING (2026 release).",
+    "distractors": [
+      "Aaj Ki Raat",
+      "Kesariya",
+      "Tauba Tauba"
+    ],
+    "youtube_video_id": "",
+    "youtube_search_query": "Cyclone Main Character Energy Shashwat Sachdev & KING official song",
+    "fun_fact": "Trending 2026 Bollywood release from \"Main Character Energy\" performed by Shashwat Sachdev & KING.",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/a6/bf/32/a6bf32d0-1283-e79a-e09d-98cb011e0388/mzaf_15709682770135459621.plus.aac.p.m4a",
+    "is_daily_latest": true,
+    "added_date": "2026-11-24",
+    "id": 290,
+    "times_played": 0,
+    "times_correct": 0
   }
 ]
