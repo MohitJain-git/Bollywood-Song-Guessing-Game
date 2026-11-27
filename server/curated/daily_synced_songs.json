@@ -2278,5 +2278,59 @@
     "id": 290,
     "times_played": 0,
     "times_correct": 0
+  },
+  {
+    "song_name": "Mast Malang Jhoom",
+    "movie_name": "New Year Dance Dhamaka 2025",
+    "artist": "Vishal Mishra, Arijit Singh, Nikhita Gandhi & Irshad Kamil",
+    "era": "2020s",
+    "release_year": 2024,
+    "english_riddle_1": "My heart beats to a new rhythm every time your eyes meet mine, turning a fleeting glance into an unforgettable melody.",
+    "english_riddle_2": "Every moment your only feeling is, you only my every hope is",
+    "hinglish_lyrics_1": "Teri aankhon mein jo jaadu hai, mera dil ab bekaboo hai",
+    "hinglish_lyrics_2": "Har lamha tera hi ehsaas hai, tu hi meri har aas hai",
+    "actor_visual_clue": "A vibrant 2024 Bollywood musical sequence from \"New Year Dance Dhamaka 2025\" featuring chart-topping choreography.",
+    "music_director_clue": "Brought to life by Vishal Mishra, Arijit Singh, Nikhita Gandhi & Irshad Kamil (2024 release).",
+    "distractors": [
+      "Aaj Ki Raat",
+      "Kesariya",
+      "Tauba Tauba"
+    ],
+    "youtube_video_id": "",
+    "youtube_search_query": "Mast Malang Jhoom New Year Dance Dhamaka 2025 Vishal Mishra, Arijit Singh, Nikhita Gandhi & Irshad Kamil official song",
+    "fun_fact": "Trending 2024 Bollywood release from \"New Year Dance Dhamaka 2025\" performed by Vishal Mishra, Arijit Singh, Nikhita Gandhi & Irshad Kamil.",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/f0/6d/fa/f06dfacd-5008-1921-dbb9-fba10e2bd3d0/mzaf_9081814196037685916.plus.aac.p.m4a",
+    "is_daily_latest": true,
+    "added_date": "2026-11-27",
+    "id": 291,
+    "times_played": 0,
+    "times_correct": 0
+  },
+  {
+    "song_name": "Ik Tu Hai",
+    "movie_name": "Love Wali Sunshine",
+    "artist": "Jubin Nautiyal, Shashwat Sachdev & Kumaar",
+    "era": "2020s",
+    "release_year": 2026,
+    "english_riddle_1": "My heart beats to a new rhythm every time your eyes meet mine, turning a fleeting glance into an unforgettable melody.",
+    "english_riddle_2": "Every moment your only feeling is, you only my every hope is",
+    "hinglish_lyrics_1": "Teri aankhon mein jo jaadu hai, mera dil ab bekaboo hai",
+    "hinglish_lyrics_2": "Har lamha tera hi ehsaas hai, tu hi meri har aas hai",
+    "actor_visual_clue": "A vibrant 2026 Bollywood musical sequence from \"Love Wali Sunshine\" featuring chart-topping choreography.",
+    "music_director_clue": "Brought to life by Jubin Nautiyal, Shashwat Sachdev & Kumaar (2026 release).",
+    "distractors": [
+      "Aaj Ki Raat",
+      "Kesariya",
+      "Tauba Tauba"
+    ],
+    "youtube_video_id": "",
+    "youtube_search_query": "Ik Tu Hai Love Wali Sunshine Jubin Nautiyal, Shashwat Sachdev & Kumaar official song",
+    "fun_fact": "Trending 2026 Bollywood release from \"Love Wali Sunshine\" performed by Jubin Nautiyal, Shashwat Sachdev & Kumaar.",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/66/dd/04/66dd0451-e75a-717c-7ec1-448ac092262d/mzaf_8735599461066887705.plus.aac.p.m4a",
+    "is_daily_latest": true,
+    "added_date": "2026-11-27",
+    "id": 292,
+    "times_played": 0,
+    "times_correct": 0
   }
 ]
